@@ -1,0 +1,9 @@
+.vscode
+.vscode/*
+*.out
+*.log
+*.tmp
+/build
+/dist
+*.ui
+/__pycache__
