@@ -1,5 +1,6 @@
 #include "syntactic.hpp"
 
+
 Parser::Parser(Lexer& lexer_) : lexer(lexer_), currentToken(lexer_.nextInput()) {
 }
 
@@ -22,6 +23,7 @@ bool Parser::match(const std::string& expectedType) {
     
     print("匹配成功:expect " + expectedType);
     currentToken = lexer.nextInput();
+    this->lexer.debug(currentToken.type + " " + currentToken.value);
     return true;
 }
 

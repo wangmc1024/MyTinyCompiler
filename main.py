@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QApplication,QDialog
 from main_ui import Ui_compiler
 import sys
 import lexical
+import syntactic
 
 
 class MyDialog(QDialog):
@@ -35,7 +36,17 @@ class MyDialog(QDialog):
     def syntactic_analysis(self):
         self.ui.output.clear()
         self.ui.debug.clear()
-        print("语法分析开始")
+        print("词法分析开始")
+        source_code = self.ui.input.toPlainText()
+        lexer = lexical.Lexer(source_code)
+        parser = syntactic.Parser(lexer)
+        parser.parseProgram()
+        parseResult = parser.getParseResult()
+        for line in parseResult:
+            self.ui.output.addItem(line)
+        debugInfo = lexer.getDebugInfo()
+        for info in debugInfo:
+            self.ui.debug.addItem(info)
          
     def AST_analysis(self):
         print("AST Analysis")

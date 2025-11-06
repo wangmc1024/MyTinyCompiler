@@ -1,7 +1,10 @@
 #pragma once
-#include "../lexical/lexical.hpp"
 #include <vector>
 #include <string>
+#include "../lexical/lexical.hpp"
+
+class Lexer;
+class Token;
 
 class Parser {
 private:
@@ -13,6 +16,8 @@ public:
     Parser(Lexer& lexer_);
     void parseProgram();
     const std::vector<std::string>& getParseResult() const;
+
+    Lexer& getLexer() const { return lexer; }
 
 private:
     bool match(const std::string& expectedType);

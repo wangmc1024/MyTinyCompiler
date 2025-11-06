@@ -3,7 +3,8 @@
 #include <string>
 #include <vector>
 
-// Token类：存储词法单元的类型和值
+class Parser;
+
 class Token {
 public:
     std::string type;  // 词法单元类型
@@ -14,15 +15,14 @@ public:
 };
 
 class Lexer {
+    friend class Parser;
 private:
     std::string sourceProgram;  
     int pointer;                
     std::vector<std::string> debugInfo;  
 
 public:
-    // 构造函数：接收源程序字符串，初始化解析指针
     Lexer(std::string source);
-
   
     Token nextInput();
 
@@ -31,7 +31,6 @@ public:
 
     // 清空调试信息
     void clearDebugInfo();
-
 private:
     // 向调试信息列表添加内容
     void debug(const std::string& msg);
