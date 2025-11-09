@@ -3,9 +3,6 @@
 #include <string>
 #include "../lexical/lexical.hpp"
 
-class Lexer;
-class Token;
-
 class Parser {
 private:
     Lexer& lexer;
@@ -34,12 +31,20 @@ private:
     void parseAssignmentStatement();
     void parseExpression();
     void parseD();
+    void parseConjunction();  // 新增：对应<conjunction>
+    void parseG();  // 新增：对应G产生式
     void parseInversion();
     void parseRelationExpression();
     void parseE();
     void parseMathExpression();
-    void parseF();
+    void parseTerm();  // 新增：对应<term>
+    void parseH();  // 新增：对应H产生式
+    void parseI();  // 新增：对应I产生式
+    void parseF();  // 保留原函数（如需调整逻辑需同步修改）
     void parseFactor();
+    void parseString();  // 新增：对应<字符串>
     void parseConditionalStatement();
+    void parseLoopStatement();  // 新增：对应<循环语句>
+    void parseNestedStatement();  // 新增：对应<嵌套语句>
     void parseCompoundStatement();
 };

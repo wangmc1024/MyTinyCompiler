@@ -7,11 +7,13 @@ class Parser;
 
 class Token {
 public:
-    std::string type;  // 词法单元类型
-    std::string value; // 词法单元的值
+    std::string type;  
+    std::string value; 
 
     Token(std::string type_, std::string value_) 
         : type(std::move(type_)), value(std::move(value_)) {}
+    
+    std::string toString() const;
 };
 
 class Lexer {
@@ -26,10 +28,8 @@ public:
   
     Token nextInput();
 
-    // 获取调试信息列表
     const std::vector<std::string>& getDebugInfo() const;
-
-    // 清空调试信息
+    
     void clearDebugInfo();
 private:
     // 向调试信息列表添加内容

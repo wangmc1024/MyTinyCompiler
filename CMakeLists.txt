@@ -66,6 +66,8 @@ foreach(MOD_DIR IN LISTS MODULES_LIST)
 endforeach()
 
 target_link_libraries(syntactic_core PUBLIC lexical_core)
+target_link_libraries(TAC_core PUBLIC lexical_core)
+target_link_libraries(AST_core PUBLIC lexical_core)
 
 # （如需AST依赖其他模块，取消下面注释并调整）
 # target_include_directories(AST_core PUBLIC 

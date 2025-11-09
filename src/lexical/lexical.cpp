@@ -1,30 +1,32 @@
 #include "lexical.hpp"
-#include <cctype>  // 用于isdigit、islower等字符判断
+#include <cctype>
 
-// Lexer构造函数：初始化源程序(添加结束符#)和指针
+std::string Token::toString() const {
+    return "(" + type + ", " + value + ")";
+}
+
+
 Lexer::Lexer(std::string source) 
-    : sourceProgram(std::move(source) + "#"),  // 自动补充结束符
+    : sourceProgram(std::move(source) + "#"), 
       pointer(0) {}
 
-// 核心：解析下一个词法单元(状态机实现)
+
 Token Lexer::nextInput() {
-    int state = 0;         // 状态机当前状态
-    std::string tmpWord;   // 临时存储当前识别的字符序列
+    int state = 0;         
+    std::string tmpWord;   
 
     while (pointer < sourceProgram.size()) {
         char symbol = sourceProgram[pointer];
 
-        // 跳过空白字符(空格、制表符等)
+        // 跳过空白字符
         if (isspace(symbol)) {
             pointer++;
             continue;
         }
 
-        // 状态机逻辑：根据当前状态和字符类型跳转
         switch (state) {
-            case 0:  // 初始状态：识别第一个字符
+            case 0: 
                 if (symbol == '$') {
-                    // 标识符以$开头，进入标识符识别状态
                     state = 100;
                     tmpWord += symbol;
                     pointer++;
@@ -33,7 +35,11 @@ Token Lexer::nextInput() {
                     state = 200;
                     tmpWord += symbol;
                     pointer++;
-                } else if (symbol == 'i') {
+                }else if(symbol == ';'){
+                    pointer++;
+                    return Token("分号", tmpWord + symbol);
+                }
+                 else if (symbol == 'i') {
                     // 可能是"if"或"in"(变量说明)，进入i开头关键字状态
                     state = 400;
                     tmpWord += symbol;
@@ -43,6 +49,9 @@ Token Lexer::nextInput() {
                     state = 500;
                     tmpWord += symbol;
                     pointer++;
+                } else if (symbol == ',') {
+                    pointer++;
+                    return Token("逗号", tmpWord + symbol);
                 } else if (symbol == ':') {
                     // 可能是赋值号":="，进入赋值号识别状态
                     state = 700;
@@ -68,26 +77,31 @@ Token Lexer::nextInput() {
                     state = 1100;
                     tmpWord += symbol;
                     pointer++;
-                } else if (symbol == '<') {
+                }else if(symbol == '('){
+                    pointer++;
+                    return Token("左括号", tmpWord + symbol);
+                } else if(symbol == ')'){
+                    pointer++;
+                    return Token("右括号", tmpWord + symbol);
+                }
+                 else if (symbol == '<') {
                     // 关系运算符(<或<=)，进入<识别状态
                     state = 1400;
                     tmpWord += symbol;
                     pointer++;
                 } else if (symbol == '>') {
-                    // 关系运算符>，直接返回
+                    state = 1410;
                     tmpWord += symbol;
                     pointer++;
-                    return Token("关系", tmpWord);
                 } else if (symbol == '=') {
                     // 可能是==，进入=识别状态
                     state = 1420;
                     tmpWord += symbol;
                     pointer++;
-                } else if (symbol == '*' || symbol == '/') {
+                } else if (symbol == '*' || symbol == '/' || symbol == '%') {
                     // 乘法运算符(*或/)，直接返回
-                    tmpWord += symbol;
                     pointer++;
-                    return Token("乘法", tmpWord);
+                    return Token("乘法", tmpWord + symbol);
                 } else if (symbol == 'e') {
                     // 可能是"else"，进入e开头关键字状态
                     state = 1700;
@@ -95,31 +109,38 @@ Token Lexer::nextInput() {
                     pointer++;
                 } else if (symbol == '{') {
                     // begin标记({)，直接返回
-                    tmpWord += symbol;
                     pointer++;
-                    return Token("begin", tmpWord);
+                    return Token("begin", tmpWord + symbol);
                 } else if (symbol == '}') {
-                    // end标记(})，直接返回
+                    pointer++;
+                    return Token("end", tmpWord + symbol);
+                }else if(symbol == '+' || symbol == '-'){
+                    pointer++;
+                    return Token("加法", tmpWord + symbol);
+                }else if(symbol == 'a'){
+                    state = 3000;
                     tmpWord += symbol;
                     pointer++;
-                    return Token("end", tmpWord);
-                } else if (symbol == ';') {
-                    // 分号，直接返回
+                }else if(symbol == 's'){
+                    state = 4000;
+                    tmpWord += symbol;
                     pointer++;
-                    return Token("分号", ";");
-                } else if (symbol == ',') {
-                    // 逗号，直接返回
+                }else if(symbol == 'w'){
+                    state = 5000;
+                    tmpWord += symbol;
                     pointer++;
-                    return Token("逗号", ",");
-                } else if (symbol == '(') {
-                    // 左括号，直接返回
+                }
+                else if(symbol == '"'){
+                    state = 6000;
+                    tmpWord += symbol;
                     pointer++;
-                    return Token("左括号", "(");
-                } else if (symbol == ')') {
-                    // 右括号，直接返回
+                }
+                else if(symbol == '#'){
+                    // 直接识别为结束符号#
                     pointer++;
-                    return Token("右括号", ")");
-                } else {
+                    return Token("#", "#");
+                }
+                else {
                     // 无法识别的符号，返回错误
                     pointer++;
                     return Token("error", "状态0无法识别的符号:" + std::string(1, symbol));
@@ -162,7 +183,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    // 数字序列结束，返回整数
                     return Token("整数", tmpWord);
                 }
                 break;
@@ -174,12 +194,11 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else if (symbol == 'f') {
-                    // 识别为"if"关键字
+                    // 识别为"if"
                     tmpWord += symbol;
                     pointer++;
                     return Token("if", tmpWord);
                 } else {
-                    // 关键字格式错误
                     pointer++;
                     return Token("error", "i开头关键字格式错误");
                 }
@@ -239,13 +258,13 @@ Token Lexer::nextInput() {
                     return Token("赋值号", tmpWord);
                 } else {
                     pointer++;
-                    return Token("error", ":后需跟=(应为赋值号:=)");
+                    return Token("冒号", tmpWord);
                 }
                 break;
 
             case 800:  // o开头关键字(验证是否为or)
                 if (symbol == 'r') {
-                    // 识别为"or"
+// 识别为"or"
                     tmpWord += symbol;
                     pointer++;
                     return Token("or", tmpWord);
@@ -363,8 +382,27 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                     return Token("关系", tmpWord);
-                } else {
+                }
+                else if (symbol == '>'){
+                    tmpWord += symbol;
+                    pointer++;
+                    return Token("关系", tmpWord);
+                }
+                else {
                     // 识别为"<"
+                    return Token("关系", tmpWord);
+                }
+                break;
+            
+            case 1410:  // >状态(验证是否为>或>=)
+                if (symbol == '=') {
+                    // 识别为">="
+                    tmpWord += symbol;
+                    pointer++;
+                    return Token("关系", tmpWord);
+                }
+                else {
+                    // 识别为">"
                     return Token("关系", tmpWord);
                 }
                 break;
@@ -414,17 +452,169 @@ Token Lexer::nextInput() {
                     return Token("error", "els后需跟e(应为else)");
                 }
                 break;
+            case 3000:
+                if(symbol == 'n'){
+                    state = 3001;
+                    tmpWord += symbol;
+                    pointer++;
+                } else {
+                    pointer++;
+                    return Token("error", "a后需跟n(应为and)");
+                }
+                break;
+            case 3001:
+                if(symbol == 'd'){
+                    tmpWord += symbol;
+                    pointer++;
+                    return Token("and", tmpWord);
+                } else {
+                    pointer++;
+                    return Token("error", "and后需跟d(应为and)");
+                }
+                break;
+            //string
+            case 4000:
+                if(symbol == 't'){
+                    state = 4001;
+                    tmpWord += symbol;
+                    pointer++;
+                } else {
+                    pointer++;
+                    return Token("error", "s后需跟(应为string)");
+                }
+                break;
+                
+            case 4001:
+                if(symbol == 'r'){
+                    state = 4002;
+                    tmpWord += symbol;
+                    pointer++;
+                } else {
+                    pointer++;
+                    return Token("error", "st后需跟r(应为string)");
+                }
+                break;
+            case 4002:
+                if(symbol == 'i'){
+                    state = 4003;
+                    tmpWord += symbol;
+                    pointer++;
+                } else {
+                    pointer++;
+                    return Token("error", "str后需跟t(应为string)");
+                }
+                break;
+            case 4003:
+                if(symbol == 'n'){
+                    state = 4004;
+                    tmpWord += symbol;
+                    pointer++;
+                } else {
+                    pointer++;
+                    return Token("error", "stri后需跟i(应为string)");
+                }
+                break;
+            case 4004:
+                if(symbol == 'g'){
+                    tmpWord += symbol;
+                    pointer++;
+                    return Token("string", tmpWord);
+                } else {
+                    pointer++;
+                    return Token("error", "string后需跟g(应为string)");
+                }
+                break;
+            
+            //while
+            case 5000:
+                if(symbol == 'h'){
+                    state = 5001;
+                    tmpWord += symbol;
+                    pointer++;
+                } else {
+                    pointer++;
+                    return Token("error", "w后需跟h(应为while)");
+                }
+                break;
+            case 5001:
+                if(symbol == 'i'){
+                    state = 5002;
+                    tmpWord += symbol;
+                    pointer++;
+                } else {
+                    pointer++;
+                    return Token("error", "wh后需跟i(应为while)");
+                }
+                break;
+            case 5002:
+                if(symbol == 'l'){
+                    state = 5003;
+                    tmpWord += symbol;
+                    pointer++;
+
+                } else {
+                    pointer++;
+                    return Token("error", "whi后需跟l(应为while)");
+                }
+                break;
+            case 5003:
+                if(symbol == 'e'){
+                    tmpWord += symbol;
+                    pointer++;
+                    return Token("while", tmpWord);
+                } else {
+                    pointer++;
+                    return Token("error", "whil后需跟e(应为while)");
+                }
+                break;
+            case 6000:
+                if(symbol == '"'){
+                    // 空字符串情况
+                    tmpWord += symbol;
+                    pointer++;
+                    return Token("字符串", tmpWord);
+                } else if(isdigit(symbol) || islower(symbol) || isupper(symbol)){
+                    state = 6001;
+                    tmpWord += symbol;
+                    pointer++;
+                } else {
+                    pointer++;
+                    return Token("error", "字符串格式错误: 引号后应为字母或数字");
+                }
+                break;
+            case 6001:
+                if(isdigit(symbol) || islower(symbol) || isupper(symbol)){
+                    // 继续读取字符串内容
+                    tmpWord += symbol;
+                    pointer++;
+                } else if(symbol == '"'){
+                    // 字符串结束
+                    tmpWord += symbol;
+                    pointer++;
+                    return Token("字符串", tmpWord);
+                } else {
+                    pointer++;
+                    return Token("error", "字符串格式错误: 缺少结束引号");
+                }
+                break;
 
             default:
-                // 未知状态，跳过当前字符
                 pointer++;
-                debug("跳过未知状态" + std::to_string(state) + "的字符: " + std::string(1, symbol));
+                debug("error: 无法识别的字符: " + std::string(1, symbol));
+                if (pointer >= sourceProgram.size()) {
+                    return Token("error", "未知状态且已到达程序末尾");
+                }
                 break;
         }
     }
 
     // 到达源程序末尾(#)
-    pointer++;
+    if (pointer < sourceProgram.size()) {
+        pointer++;
+        return Token("#", "#");
+    }
+    
+    // 安全返回
     return Token("#", "#");
 }
 
@@ -433,12 +623,12 @@ void Lexer::debug(const std::string& msg) {
     debugInfo.push_back(msg);
 }
 
-// 获取调试信息
+
 const std::vector<std::string>& Lexer::getDebugInfo() const {
     return debugInfo;
 }
 
-// 清空调试信息
+
 void Lexer::clearDebugInfo() {
     debugInfo.clear();
 }

@@ -1,6 +1,5 @@
 #include "syntactic.hpp"
 
-
 Parser::Parser(Lexer& lexer_) : lexer(lexer_), currentToken(lexer_.nextInput()) {
 }
 
@@ -23,7 +22,6 @@ bool Parser::match(const std::string& expectedType) {
     
     print("匹配成功:expect " + expectedType);
     currentToken = lexer.nextInput();
-    this->lexer.debug(currentToken.type + " " + currentToken.value);
     return true;
 }
 
@@ -32,9 +30,9 @@ void Parser::print(const std::string& msg) {
 }
 
 void Parser::parseDeclareSection() {
-    print("推导:<变量说明部分>-><变量声明语句>分号A");
+    print("推导:<变量说明部分>-><变量说明语句>分号A");
     parseDeclareStatement();
-    match("分号");
+    if (!match("分号")) return;
     parseA();
 }
 
@@ -44,24 +42,12 @@ void Parser::parseA() {
     if (currentToken.type == "变量说明") {
         print("推导:A-><变量说明语句>分号A");
         parseDeclareStatement();
-        match("分号");
+        if (!match("分号")) return;
         parseA();
     }
-    else if (currentToken.type == "标识符" || currentToken.type == "if") {
+    else if (currentToken.type == "标识符" || currentToken.type == "if" || currentToken.type == "while" || currentToken.type == "#") {
         print("推导:A->ε");
     }
-}
-
-void Parser::parseDeclareStatement() {
-    print("推导:<变量说明语句>->变量说明<标识符列表>");
-    match("变量说明");
-    parseVarList();
-}
-
-void Parser::parseVarList() {
-    print("推导:<标识符列表>->标识符B");
-    match("标识符");
-    parseB();
 }
 
 void Parser::parseB() {
@@ -69,14 +55,63 @@ void Parser::parseB() {
     
     if (currentToken.type == "逗号") {
         print("推导:B->逗号 标识符 B");
-        match("逗号");
-        match("标识符");
+        if (!match("逗号")) return;
+        if (!match("标识符")) return;
         parseB();
     }
-    else if (currentToken.type == "分号") {
+    else if (currentToken.type == "分号" || currentToken.type == "#") {
         print("推导:B->ε");
     }
 }
+
+void Parser::parseStatement() {
+    print("选择产生式:<语句>-><赋值语句>|<条件语句>|<循环语句>");
+    
+    if (currentToken.type == "标识符") {
+        print("推导:<语句>-><赋值语句>");
+        parseAssignmentStatement();
+    }
+    else if (currentToken.type == "if") {
+        print("推导:<语句>-><条件语句>");
+        parseConditionalStatement();
+    }
+    else if (currentToken.type == "while") {
+        print("推导:<语句>-><循环语句>");
+        parseLoopStatement();
+    }
+    else if (currentToken.type == "#") {
+        print("推导:<语句>->ε (程序结束)");
+    }
+}
+
+void Parser::parseNestedStatement() {
+    print("选择产生式:<嵌套语句>-><语句> 分号 | <复合语句>");
+    
+    if (currentToken.type == "标识符" || currentToken.type == "if" || currentToken.type == "while") {
+        print("推导:<嵌套语句>-><语句> 分号");
+        parseStatement();
+        if (!match("分号")) return;
+    }
+    else if (currentToken.type == "begin") {
+        print("推导:<嵌套语句>-><复合语句>");
+        parseCompoundStatement();
+    }
+    else if (currentToken.type == "#") {
+        print("推导:<嵌套语句>->ε (程序结束)");
+    }
+}
+void Parser::parseDeclareStatement() {
+    print("推导:<变量说明语句>->变量说明<标识符列表>");
+    if (!match("变量说明")) return;
+    parseVarList();
+}
+
+void Parser::parseVarList() {
+    print("推导:<标识符列表>->标识符B");
+    if (!match("标识符")) return;
+    parseB();
+}
+
 
 void Parser::parseStatementSection() {
     print("推导:<语句部分>-><语句>C");
@@ -89,7 +124,7 @@ void Parser::parseC() {
     
     if (currentToken.type == "分号") {
         print("推导:C->分号<语句>C");
-        match("分号");
+        if (!match("分号")) return;
         parseStatement();
         parseC();
     }
@@ -98,38 +133,28 @@ void Parser::parseC() {
     }
 }
 
-void Parser::parseStatement() {
-    print("选择产生式:<语句>-><赋值语句>|<条件语句>");
-    
-    if (currentToken.type == "标识符") {
-        print("推导:<语句>-><赋值语句>");
-        parseAssignmentStatement();
-    }
-    else if (currentToken.type == "if") {
-        parseConditionalStatement();
-    }
-}
+
 
 void Parser::parseAssignmentStatement() {
-    print("推导:<赋值语句>->标识符 赋值号 <表达式>");
-    match("标识符");
-    match("赋值号");
+    print("推导:<赋值语句>->标识符 赋值符 <表达式>");
+    if (!match("标识符")) return;
+    if (!match("赋值号")) return;
     parseExpression();
 }
 
 void Parser::parseExpression() {
-    print("推导:<表达式>-> <inversion> D");
-    parseInversion();
+    print("推导:<表达式>-><conjunction> D");
+    parseConjunction();
     parseD();
 }
 
 void Parser::parseD() {
-    print("选择产生式:D-> or <inversion> D| ε");
+    print("选择产生式:D->or <conjunction> D | ε");
     
     if (currentToken.type == "or") {
-        print("推导:D-> or <inversion> D");
-        match("or");
-        parseInversion();
+        print("推导:D->or <conjunction> D");
+        if (!match("or")) return;
+        parseConjunction();
         parseD();
     }
     else if (currentToken.type == "分号" || currentToken.type == "#" || 
@@ -138,17 +163,37 @@ void Parser::parseD() {
     }
 }
 
+void Parser::parseConjunction() {
+    print("推导:<conjunction>-><inversion> G");
+    parseInversion();
+    parseG();
+}
+
+void Parser::parseG() {
+    print("选择产生式:G->and <inversion> G | ε");
+    
+    if (currentToken.type == "and") {
+        print("推导:G->and <inversion> G");
+        if (!match("and")) return;
+        parseInversion();
+        parseG();
+    }
+    else if (currentToken.type == "分号" || 
+             currentToken.type == "#" || currentToken.type == "end" || 
+             currentToken.type == "右括号") {
+        print("推导:G->ε");
+    }
+}
+
 void Parser::parseInversion() {
     print("选择产生式:<inversion>-> not <inversion> | <关系表达式>");
     
     if (currentToken.type == "not") {
         print("推导:<inversion>-> not <inversion>");
-        match("not");
+        if (!match("not")) return;
         parseInversion();
     }
-    else if (currentToken.type == "标识符" || currentToken.type == "true" ||
-             currentToken.type == "false" || currentToken.type == "整数" ||
-             currentToken.type == "左括号") {
+    else if (currentToken.type == "标识符") {
         print("推导:<inversion>-> <关系表达式>");
         parseRelationExpression();
     }
@@ -161,44 +206,61 @@ void Parser::parseRelationExpression() {
 }
 
 void Parser::parseE() {
-    print("选择产生式:E-> 关系 <算术表达式> | ε ");
+    print("选择产生式:E-> 关系 <算术表达式> E | ε ");
     
     if (currentToken.type == "关系") {
-        print("推导:E-> 关系 <算术表达式>");
-        match("关系");
+        print("推导:E-> 关系 <算术表达式> E");
+        if (!match("关系")) return;
         parseMathExpression();
+        parseE();
     }
-    else if (currentToken.type == "分号" || currentToken.type == "#" ||
-             currentToken.type == "end" || currentToken.type == "右括号" ||
-             currentToken.type == "or") {
+    else if ( currentToken.type == "and") {
         print("推导:E->ε");
     }
 }
 
 void Parser::parseMathExpression() {
-    print("推导:<算术表达式> -> <factor> F ");
-    parseFactor();
-    parseF();
+    print("推导:<算术表达式> -> <term> H ");
+    parseTerm();
+    parseH();
 }
 
-void Parser::parseF() {
-    print("选择产生式:F-> 乘法 <factor> F | ε ");
+void Parser::parseTerm() {
+    print("推导:<term>-><factor> I");
+    parseFactor();
+    parseI();
+}
+
+void Parser::parseH() {
+    print("选择产生式:H-> 加法 <term> H | ε ");
+    
+    if (currentToken.type == "加法") {
+        print("推导:H-> 加法 <term> H");
+        if (!match("加法")) return;
+        parseTerm();
+        parseH();
+    }
+    else if (currentToken.type == "关系") {
+        print("推导:H->ε");
+    }
+}
+
+void Parser::parseI() {
+    print("选择产生式:I-> 乘法 <factor> I | ε ");
     
     if (currentToken.type == "乘法") {
-        print("推导:F-> 乘法 <factor> F");
-        match("乘法");
+        print("推导:I-> 乘法 <factor> I");
+        if (!match("乘法")) return;
         parseFactor();
-        parseF();
+        parseI();
     }
-    else if (currentToken.type == "分号" || currentToken.type == "#" ||
-             currentToken.type == "end" || currentToken.type == "右括号" ||
-             currentToken.type == "关系" || currentToken.type == "or") {
-        print("推导:F->ε");
+    else if (currentToken.type == "加法") {
+        print("推导:I->ε");
     }
 }
 
 void Parser::parseFactor() {
-    print("选择产生式:<factor>-> 标识符|true|false| 整数 |左括号 <表达式> 右括号 ");
+    print("选择产生式:<factor>-> 标识符|true|false| 引号 <字母序列> 引号|整数|左括号 <表达式> 右括号 ");
     
     if (currentToken.type == "标识符") {
         print("推导:<factor>-> 标识符");
@@ -212,32 +274,52 @@ void Parser::parseFactor() {
         print("推导:<factor>-> false");
         match("false");
     }
+    else if (currentToken.type == "引号") {
+        print("推导:<factor>->引号 <字母序列> 引号");
+        if (!match("引号")) return;
+        // 这里需要添加字母序列的处理逻辑
+        if (!match("引号")) return;
+    }
     else if (currentToken.type == "整数") {
         print("推导:<factor>-> 整数");
         match("整数");
     }
     else if (currentToken.type == "左括号") {
         print("推导:<factor>-> 左括号<表达式>右括号");
-        match("左括号");
+        if (!match("左括号")) return;
         parseExpression();
-        match("右括号");
+        if (!match("右括号")) return;
     }
 }
 
+
 void Parser::parseConditionalStatement() {
-    print("推导:<条件语句>-> if 左括号 <表达式> 右括号 <复合语句> else <复合语句>");
-    match("if");
-    match("左括号");
+    print("推导:<条件语句>-> if 左括号 <表达式> 右括号 <嵌套语句> else <嵌套语句>");
+    if (!match("if")) return;
+    if (!match("左括号")) return;
     parseExpression();
-    match("右括号");
-    parseCompoundStatement();
-    match("else");
-    parseCompoundStatement();
+    if (!match("右括号")) return;
+    parseNestedStatement();
+    if (!match("else")) return;
+    parseNestedStatement();
+}
+
+void Parser::parseLoopStatement() {
+    print("推导:<循环语句>->while 左括号 <表达式> 右括号 冒号 <嵌套语句>");
+    if (!match("while")) return;
+    if (!match("左括号")) return;
+    parseExpression();
+    if (!match("右括号")) return;
+    if (!match("冒号")) return;
+    parseNestedStatement();
 }
 
 void Parser::parseCompoundStatement() {
     print("推导:<复合语句>-> begin <语句部分> end");
-    match("begin");
+    if (!match("begin")) return;
     parseStatementSection();
-    match("end");
+    if (!match("end")) return;
 }
+
+
+
