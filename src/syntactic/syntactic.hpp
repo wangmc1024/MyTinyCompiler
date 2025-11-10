@@ -40,7 +40,7 @@ private:
     void parseTerm();  // 新增：对应<term>
     void parseH();  // 新增：对应H产生式
     void parseI();  // 新增：对应I产生式
-    void parseF();  // 保留原函数（如需调整逻辑需同步修改）
+    //void parseF();
     void parseFactor();
     void parseString();  // 新增：对应<字符串>
     void parseConditionalStatement();

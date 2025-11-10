@@ -94,7 +94,7 @@ class MyDialog(QDialog):
         except Exception as e:
             self.ui.output.addItem(f"AST分析错误: {str(e)}")
             
-    def TAC_analysis(self):
+    def TAC_analysis(self):         
         self.ui.output.clear()
         self.ui.debug.clear()
         try:

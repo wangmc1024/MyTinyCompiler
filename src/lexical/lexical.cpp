@@ -172,7 +172,6 @@ Token Lexer::nextInput() {
                     return Token("标识符", tmpWord);
                 } else {
                     // 标识符未正确结束(未以$结尾)
-                    pointer++;
                     return Token("error", "标识符未以$结尾");
                 }
                 break;
@@ -199,7 +198,6 @@ Token Lexer::nextInput() {
                     pointer++;
                     return Token("if", tmpWord);
                 } else {
-                    pointer++;
                     return Token("error", "i开头关键字格式错误");
                 }
                 break;
@@ -211,7 +209,6 @@ Token Lexer::nextInput() {
                     pointer++;
                     return Token("变量说明", tmpWord);
                 } else {
-                    pointer++;
                     return Token("error", "in后需跟t(应为int)");
                 }
                 break;
@@ -222,7 +219,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    pointer++;
                     return Token("error", "b开头关键字格式错误(应为bool)");
                 }
                 break;
@@ -233,7 +229,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    pointer++;
                     return Token("error", "bo后需跟o(应为bool)");
                 }
                 break;
@@ -245,7 +240,6 @@ Token Lexer::nextInput() {
                     pointer++;
                     return Token("变量说明", tmpWord);
                 } else {
-                    pointer++;
                     return Token("error", "boo后需跟l(应为bool)");      
                 }
                 break;
@@ -257,7 +251,6 @@ Token Lexer::nextInput() {
                     pointer++;
                     return Token("赋值号", tmpWord);
                 } else {
-                    pointer++;
                     return Token("冒号", tmpWord);
                 }
                 break;
@@ -269,7 +262,6 @@ Token Lexer::nextInput() {
                     pointer++;
                     return Token("or", tmpWord);
                 } else {
-                    pointer++;
                     return Token("error", "o后需跟r(应为or)");
                 }
                 break;
@@ -280,7 +272,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    pointer++;
                     return Token("error", "n开头关键字格式错误(应为not)");
                 }
                 break;
@@ -292,7 +283,6 @@ Token Lexer::nextInput() {
                     pointer++;
                     return Token("not", tmpWord);
                 } else {
-                    pointer++;
                     return Token("error", "no后需跟t(应为not)");
                 }
                 break;
@@ -303,7 +293,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    pointer++;
                     return Token("error", "t开头关键字格式错误(应为true)");
                 }
                 break;
@@ -314,7 +303,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    pointer++;
                     return Token("error", "tr后需跟u(应为true)");
                 }
                 break;
@@ -326,7 +314,6 @@ Token Lexer::nextInput() {
                     pointer++;
                     return Token("true", tmpWord);
                 } else {
-                    pointer++;
                     return Token("error", "tru后需跟e(应为true)");
                 }
                 break;
@@ -337,7 +324,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    pointer++;
                     return Token("error", "f开头关键字格式错误(应为false)");
                 }
                 break;
@@ -348,7 +334,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    pointer++;
                     return Token("error", "fa后需跟l(应为false)");
                 }
                 break;
@@ -359,7 +344,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    pointer++;
                     return Token("error", "fal后需跟s(应为false)");
                 }
                 break;
@@ -371,7 +355,6 @@ Token Lexer::nextInput() {
                     pointer++;
                     return Token("false", tmpWord);
                 } else {
-                    pointer++;
                     return Token("error", "fals后需跟e(应为false)");
                 }
                 break;
@@ -414,7 +397,6 @@ Token Lexer::nextInput() {
                     pointer++;
                     return Token("关系", tmpWord);
                 } else {
-                    pointer++;
                     return Token("error", "=后需跟=(应为==)");
                 }
                 break;
@@ -425,7 +407,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    pointer++;
                     return Token("error", "e开头关键字格式错误(应为else)");
                 }
                 break;
@@ -436,7 +417,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    pointer++;
                     return Token("error", "el后需跟s(应为else)");
                 }
                 break;
@@ -448,7 +428,6 @@ Token Lexer::nextInput() {
                     pointer++;
                     return Token("else", tmpWord);
                 } else {
-                    pointer++;
                     return Token("error", "els后需跟e(应为else)");
                 }
                 break;
@@ -458,7 +437,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    pointer++;
                     return Token("error", "a后需跟n(应为and)");
                 }
                 break;
@@ -468,7 +446,6 @@ Token Lexer::nextInput() {
                     pointer++;
                     return Token("and", tmpWord);
                 } else {
-                    pointer++;
                     return Token("error", "and后需跟d(应为and)");
                 }
                 break;
@@ -479,7 +456,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    pointer++;
                     return Token("error", "s后需跟(应为string)");
                 }
                 break;
@@ -490,7 +466,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    pointer++;
                     return Token("error", "st后需跟r(应为string)");
                 }
                 break;
@@ -500,7 +475,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    pointer++;
                     return Token("error", "str后需跟t(应为string)");
                 }
                 break;
@@ -510,7 +484,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    pointer++;
                     return Token("error", "stri后需跟i(应为string)");
                 }
                 break;
@@ -518,9 +491,8 @@ Token Lexer::nextInput() {
                 if(symbol == 'g'){
                     tmpWord += symbol;
                     pointer++;
-                    return Token("string", tmpWord);
+                    return Token("变量说明", tmpWord);
                 } else {
-                    pointer++;
                     return Token("error", "string后需跟g(应为string)");
                 }
                 break;
@@ -532,7 +504,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    pointer++;
                     return Token("error", "w后需跟h(应为while)");
                 }
                 break;
@@ -542,7 +513,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    pointer++;
                     return Token("error", "wh后需跟i(应为while)");
                 }
                 break;
@@ -553,7 +523,6 @@ Token Lexer::nextInput() {
                     pointer++;
 
                 } else {
-                    pointer++;
                     return Token("error", "whi后需跟l(应为while)");
                 }
                 break;
@@ -563,7 +532,6 @@ Token Lexer::nextInput() {
                     pointer++;
                     return Token("while", tmpWord);
                 } else {
-                    pointer++;
                     return Token("error", "whil后需跟e(应为while)");
                 }
                 break;
@@ -578,7 +546,6 @@ Token Lexer::nextInput() {
                     tmpWord += symbol;
                     pointer++;
                 } else {
-                    pointer++;
                     return Token("error", "字符串格式错误: 引号后应为字母或数字");
                 }
                 break;
@@ -593,7 +560,6 @@ Token Lexer::nextInput() {
                     pointer++;
                     return Token("字符串", tmpWord);
                 } else {
-                    pointer++;
                     return Token("error", "字符串格式错误: 缺少结束引号");
                 }
                 break;
@@ -607,14 +573,11 @@ Token Lexer::nextInput() {
                 break;
         }
     }
-
-    // 到达源程序末尾(#)
     if (pointer < sourceProgram.size()) {
         pointer++;
         return Token("#", "#");
     }
     
-    // 安全返回
     return Token("#", "#");
 }
 

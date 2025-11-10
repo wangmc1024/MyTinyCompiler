@@ -3,12 +3,7 @@
 Parser::Parser(Lexer& lexer_) : lexer(lexer_), currentToken(lexer_.nextInput()) {
 }
 
-void Parser::parseProgram() {
-    print("推导:<程序> -> <变量说明部分><语句部分>");
-    parseDeclareSection();
-    parseStatementSection();
-    print("语法分析结束");
-}
+
 
 const std::vector<std::string>& Parser::getParseResult() const {
     return parseResult;
@@ -29,6 +24,13 @@ void Parser::print(const std::string& msg) {
     parseResult.push_back(msg);
 }
 
+void Parser::parseProgram() {
+    print("推导:<程序> -> <变量说明部分><语句部分>");
+    parseDeclareSection();
+    parseStatementSection();
+    print("语法分析结束");
+}
+
 void Parser::parseDeclareSection() {
     print("推导:<变量说明部分>-><变量说明语句>分号A");
     parseDeclareStatement();
@@ -45,7 +47,7 @@ void Parser::parseA() {
         if (!match("分号")) return;
         parseA();
     }
-    else if (currentToken.type == "标识符" || currentToken.type == "if" || currentToken.type == "while" || currentToken.type == "#") {
+    else if (currentToken.type == "标识符" || currentToken.type == "if" || currentToken.type == "while") {
         print("推导:A->ε");
     }
 }
@@ -59,7 +61,7 @@ void Parser::parseB() {
         if (!match("标识符")) return;
         parseB();
     }
-    else if (currentToken.type == "分号" || currentToken.type == "#") {
+    else if (currentToken.type == "分号") {
         print("推导:B->ε");
     }
 }
@@ -79,9 +81,6 @@ void Parser::parseStatement() {
         print("推导:<语句>-><循环语句>");
         parseLoopStatement();
     }
-    else if (currentToken.type == "#") {
-        print("推导:<语句>->ε (程序结束)");
-    }
 }
 
 void Parser::parseNestedStatement() {
@@ -95,9 +94,6 @@ void Parser::parseNestedStatement() {
     else if (currentToken.type == "begin") {
         print("推导:<嵌套语句>-><复合语句>");
         parseCompoundStatement();
-    }
-    else if (currentToken.type == "#") {
-        print("推导:<嵌套语句>->ε (程序结束)");
     }
 }
 void Parser::parseDeclareStatement() {
@@ -180,7 +176,7 @@ void Parser::parseG() {
     }
     else if (currentToken.type == "分号" || 
              currentToken.type == "#" || currentToken.type == "end" || 
-             currentToken.type == "右括号") {
+             currentToken.type == "右括号"||currentToken.type == "or") {
         print("推导:G->ε");
     }
 }
@@ -193,7 +189,9 @@ void Parser::parseInversion() {
         if (!match("not")) return;
         parseInversion();
     }
-    else if (currentToken.type == "标识符") {
+    else if (currentToken.type == "标识符" || currentToken.type == "true" || 
+             currentToken.type == "false" || currentToken.type == "字符串" || 
+             currentToken.type == "整数" || currentToken.type == "左括号") {
         print("推导:<inversion>-> <关系表达式>");
         parseRelationExpression();
     }
@@ -214,7 +212,9 @@ void Parser::parseE() {
         parseMathExpression();
         parseE();
     }
-    else if ( currentToken.type == "and") {
+    else if (currentToken.type == "and" || currentToken.type == "or" || 
+             currentToken.type == "右括号" || currentToken.type == "分号" || 
+             currentToken.type == "#" || currentToken.type == "end") {
         print("推导:E->ε");
     }
 }
@@ -235,12 +235,15 @@ void Parser::parseH() {
     print("选择产生式:H-> 加法 <term> H | ε ");
     
     if (currentToken.type == "加法") {
-        print("推导:H-> 加法 <term> H");
+        print("推导:H-> " + currentToken.type + " <term> H");
         if (!match("加法")) return;
         parseTerm();
         parseH();
     }
-    else if (currentToken.type == "关系") {
+    else if (currentToken.type == "关系" || currentToken.type == "右括号" || 
+             currentToken.type == "分号" || currentToken.type == "#" || 
+             currentToken.type == "end" || currentToken.type == "and" || 
+             currentToken.type == "or") {
         print("推导:H->ε");
     }
 }
@@ -254,13 +257,17 @@ void Parser::parseI() {
         parseFactor();
         parseI();
     }
-    else if (currentToken.type == "加法") {
+    else if (currentToken.type == "加法" || 
+             currentToken.type == "关系" || currentToken.type == "右括号" || 
+             currentToken.type == "分号" || currentToken.type == "#" || 
+             currentToken.type == "end" || currentToken.type == "and" || 
+             currentToken.type == "or") {
         print("推导:I->ε");
     }
 }
 
 void Parser::parseFactor() {
-    print("选择产生式:<factor>-> 标识符|true|false| 引号 <字母序列> 引号|整数|左括号 <表达式> 右括号 ");
+    print("选择产生式:<factor>-> 标识符|true|false| 字符串 |整数|左括号 <表达式> 右括号 ");
     
     if (currentToken.type == "标识符") {
         print("推导:<factor>-> 标识符");
@@ -274,11 +281,9 @@ void Parser::parseFactor() {
         print("推导:<factor>-> false");
         match("false");
     }
-    else if (currentToken.type == "引号") {
-        print("推导:<factor>->引号 <字母序列> 引号");
-        if (!match("引号")) return;
-        // 这里需要添加字母序列的处理逻辑
-        if (!match("引号")) return;
+    else if (currentToken.type == "字符串") {
+        print("推导:<factor>-> 字符串");
+        if (!match("字符串")) return;
     }
     else if (currentToken.type == "整数") {
         print("推导:<factor>-> 整数");
@@ -320,6 +325,3 @@ void Parser::parseCompoundStatement() {
     parseStatementSection();
     if (!match("end")) return;
 }
-
-
-

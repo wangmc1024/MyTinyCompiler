@@ -208,7 +208,7 @@ node ASTSemanticAnalyzer::translateASTStatement()
     }
     else if (currentToken.type == "while")
     {
-debug("推导：<语句>-><循环语句>");
+        debug("推导：<语句>-><循环语句>");
         node loopStmt = translateASTLoopStatement();
         statementNode.addChild(loopStmt);
     }
@@ -231,7 +231,6 @@ node ASTSemanticAnalyzer::translateASTAssignmentStatement()
     node expression = translateASTExpression();
     
     // 语义检查：检查标识符是否已声明
-    // 修改：使用identifierExists方法检查标识符是否存在
     if (!idenTable.identifierExists(name))
     {
         debug("语义错误：标识符 " + name + " 未声明");
@@ -278,7 +277,8 @@ node ASTSemanticAnalyzer::translateASTD(const node& E1)
         DNode.addChild(DChild);
     }
     else if (currentToken.type == "分号" || currentToken.type == "#" || 
-             currentToken.type == "end" || currentToken.type == "右括号")
+             currentToken.type == "end" || currentToken.type == "右括号"
+            )
     {
         debug("推导：D->ε");
         DNode = node("ε");
@@ -320,8 +320,11 @@ node ASTSemanticAnalyzer::translateASTG(const node& E1)
         GNode.addChild(GChild);
     }
     else if (currentToken.type == "分号" || 
-             currentToken.type == "#" || currentToken.type == "end" || 
-             currentToken.type == "右括号" )
+             currentToken.type == "or" ||
+             currentToken.type == "#" || 
+             currentToken.type == "end" || 
+             currentToken.type == "右括号"
+             )
     {
         debug("推导：G->ε");
         GNode = node("ε");
@@ -346,7 +349,7 @@ node ASTSemanticAnalyzer::translateASTInversion()
         inversionNode.addChild(notNode);
         inversionNode.addChild(inversionChild);
     }
-    else if (currentToken.type == "标识符")
+    else
     {
         debug("推导：<inversion>-> <关系表达式>");
         node relationExpr = translateASTRelationExpression();
@@ -388,7 +391,9 @@ node ASTSemanticAnalyzer::translateASTE(const node& E1)
         ENode.addChild(mathExpr);
         ENode.addChild(EChild);
     }
-    else if (currentToken.type == "and" )
+    else if (currentToken.type == "and" || currentToken.type == "or" ||
+             currentToken.type == "分号" || currentToken.type == "#" || 
+             currentToken.type == "end" || currentToken.type == "右括号")
     {
         debug("推导：E->ε");
         ENode = node("ε");
@@ -427,10 +432,10 @@ node ASTSemanticAnalyzer::translateASTTerm()
 
 node ASTSemanticAnalyzer::translateASTH(const node& E1)
 {
-    debug("选择产生式：H-> 加法 <term> H | 减法 <term> H | ε ");
+    debug("选择产生式：H-> 加法 <term> H | ε ");
     node HNode("H");
     
-    if (currentToken.type == "加法" || currentToken.type == "减法")
+    if (currentToken.type == "加法" )
     {
         debug("推导：H-> " + currentToken.type + " <term> H");
         node opNode(currentToken.toString());
@@ -444,7 +449,10 @@ node ASTSemanticAnalyzer::translateASTH(const node& E1)
         HNode.addChild(term);
         HNode.addChild(HChild);
     }
-    else if (currentToken.type == "关系")
+    else if (currentToken.type == "关系" || currentToken.type == "and" || 
+             currentToken.type == "or" || currentToken.type == "分号" ||
+             currentToken.type == "#" || currentToken.type == "end" || 
+             currentToken.type == "右括号")
     {
         debug("推导：H->ε");
         HNode = node("ε");
@@ -471,7 +479,11 @@ node ASTSemanticAnalyzer::translateASTI(const node& E1)
         INode.addChild(factor);
         INode.addChild(IChild);
     }
-    else if (currentToken.type == "加法" )
+    else if (currentToken.type == "加法" ||
+             currentToken.type == "关系" || currentToken.type == "and" || 
+             currentToken.type == "or" || currentToken.type == "分号" ||
+             currentToken.type == "#" || currentToken.type == "end" || 
+             currentToken.type == "右括号")
     {
         debug("推导：I->ε");
         INode = node("ε");

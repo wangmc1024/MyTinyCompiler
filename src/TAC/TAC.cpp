@@ -73,7 +73,7 @@ void TACGenerator::translateTACB(const std::string& type)
     if (currentToken.type == "逗号")
     {
         debug("推导：B->逗号 标识符 B");
-        match("逗号");
+match("逗号");
         
         std::string name = currentToken.value;
         match("标识符");
@@ -379,8 +379,8 @@ triple TACGenerator::translateTACH(const triple& E1)
         else if (op == "-") tac_op = "sub";
         else
         {
-            debug("语义错误：未知的加法运算符 " + op);
-            throw std::runtime_error("Unknown addition operator: " + op);
+            debug("语义错误：未知的算术运算符 " + op);
+            throw std::runtime_error("Unknown arithmetic operator: " + op);
         }
         
         // 生成算术运算的TAC指令
@@ -388,7 +388,10 @@ triple TACGenerator::translateTACH(const triple& E1)
         
         return translateTACH(T);
     }
-    else if (currentToken.type == "关系")
+    else if (currentToken.type == "关系" || currentToken.type == "右括号" || 
+             currentToken.type == "分号" || currentToken.type == "#" || 
+             currentToken.type == "end" || currentToken.type == "and" || 
+             currentToken.type == "or")
     {
         debug("推导：H->ε");
         return E1;
