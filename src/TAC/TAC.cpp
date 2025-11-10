@@ -28,7 +28,8 @@ void TACGenerator::translateTACA()
         match("分号");
         translateTACA();
     }
-    else if (currentToken.type == "标识符" || currentToken.type == "if" || currentToken.type == "while")
+    else if (currentToken.type == "标识符" || currentToken.type == "if" || 
+             currentToken.type == "while")
     {
         debug("推导：A->ε");
     }
@@ -51,7 +52,7 @@ void TACGenerator::translateTACVarList(const std::string& type)
     // 语义检查和添加到标识符表
     if (!idenTable.Add(name))
     {
-        debug("语义错误：标识符 " + name + " 已声明");
+debug("语义错误：标识符 " + name + " 已声明");
         throw std::runtime_error("Identifier already declared: " + name);
     }
     
@@ -62,7 +63,7 @@ void TACGenerator::translateTACVarList(const std::string& type)
     }
     
     // 生成声明的TAC指令
-    tacTable.generate("declare", type, "null", name + ".type");
+    tacTable.generate("declare", type, "null", name);
     
     translateTACB(type);
 }
@@ -73,7 +74,7 @@ void TACGenerator::translateTACB(const std::string& type)
     if (currentToken.type == "逗号")
     {
         debug("推导：B->逗号 标识符 B");
-match("逗号");
+        match("逗号");
         
         std::string name = currentToken.value;
         match("标识符");
@@ -92,11 +93,11 @@ match("逗号");
         }
         
         // 生成声明的TAC指令
-        tacTable.generate("declare", type, "null", name + ".type");
+        tacTable.generate("declare", type, "null", name);
         
         translateTACB(type);
     }
-    else if (currentToken.type == "分号")
+    else if (currentToken.type == "分号" || currentToken.type == "end")
     {
         debug("推导：B->ε");
     }
@@ -119,7 +120,8 @@ void TACGenerator::translateTACC()
         translateTACStatement();
         translateTACC();
     }
-    else if (currentToken.type == "#" || currentToken.type == "end")
+    else if (currentToken.type == "#" || currentToken.type == "end" ||
+             currentToken.type == "else")
     {
         debug("推导：C->ε");
     }
@@ -141,7 +143,7 @@ void TACGenerator::translateTACStatement()
     else if (currentToken.type == "while")
     {
         debug("推导：<语句>-><循环语句>");
-        translateTACLoopStatement();  // 添加循环语句处理
+        translateTACLoopStatement();
     }
 }
 
@@ -154,8 +156,8 @@ void TACGenerator::translateTACAssignmentStatement()
     
     triple Exp = translateTACExpression();
     
-    // 更新标识符类型
-    idenTable.UpdateTypeByName(name, Exp.type);
+    // 更新标识符的值
+    idenTable.UpdateValueByName(name, Exp.value);
     
     // 生成赋值TAC指令
     tacTable.generate("assign", Exp.name, "null", name);
@@ -183,14 +185,7 @@ triple TACGenerator::translateTACD(const triple& E1)
         triple T = tempVarTable.createNewVariable();
         T.type = "bool";
         
-        // 简单的语义分析：假设都是bool类型
-        if (E1.type != "bool" || E2.type != "bool")
-        {
-            debug("语义错误：or运算需要bool类型操作数");
-            throw std::runtime_error("OR operation requires boolean operands");
-        }
-        
-        // 生成or运算的TAC指令
+        // 生成or运算的TAC指令（允许不同类型的操作数）
         tacTable.generate("or", E1.name, E2.name, T.name);
         
         return translateTACD(T);
@@ -227,20 +222,14 @@ triple TACGenerator::translateTACG(const triple& E1)
         triple T = tempVarTable.createNewVariable();
         T.type = "bool";
         
-        // 语义分析：检查操作数类型
-        if (E1.type != "bool" || E2.type != "bool")
-        {
-            debug("语义错误：and运算需要bool类型操作数");
-            throw std::runtime_error("AND operation requires boolean operands");
-        }
-        
-        // 生成and运算的TAC指令
+        // 生成and运算的TAC指令（允许不同类型的操作数）
         tacTable.generate("and", E1.name, E2.name, T.name);
         
         return translateTACG(T);
     }
     else if (currentToken.type == "分号" || currentToken.type == "#" || 
-             currentToken.type == "end" || currentToken.type == "右括号")
+             currentToken.type == "end" || currentToken.type == "右括号" ||
+             currentToken.type == "or")
     {
         debug("推导：G->ε");
         return E1;
@@ -263,33 +252,20 @@ triple TACGenerator::translateTACInversion()
         triple T = tempVarTable.createNewVariable();
         T.type = "bool";
         
-        // 语义分析：检查操作数类型
-        if (E1.type != "bool")
-        {
-            debug("语义错误：not运算需要bool类型操作数");
-            throw std::runtime_error("NOT operation requires boolean operand");
-        }
-        
-        // 生成not运算的TAC指令
+        // 生成not运算的TAC指令（允许任何类型的操作数）
         tacTable.generate("not", E1.name, "null", T.name);
         
         return T;
     }
-    else if (currentToken.type == "标识符")
+    else if (currentToken.type == "标识符" || currentToken.type == "true" ||
+             currentToken.type == "false" || currentToken.type == "整数" ||
+             currentToken.type == "字符串" || currentToken.type == "左括号")
     {
         debug("推导：<inversion>-> <关系表达式>");
         return translateTACRelationExpression();
     }
     
     return triple("error");
-}
-
-triple TACGenerator::translateTACRelationExpression()
-{
-    debug("推导：<关系表达式>-> <算术表达式> E");
-    triple E1 = translateTACMathExpression();
-    triple E = translateTACE(E1);
-    return E;
 }
 
 triple TACGenerator::translateTACE(const triple& E1)
@@ -307,33 +283,29 @@ triple TACGenerator::translateTACE(const triple& E1)
         triple T = tempVarTable.createNewVariable();
         T.type = "bool";
         
-        // 语义分析：检查操作数类型是否一致
-        if (E1.type != E2.type)
-        {
-            debug("语义错误：关系运算操作数类型不匹配");
-            throw std::runtime_error("Relational operation operands type mismatch");
-        }
-        
         // 转换关系运算符为TAC指令
         std::string tac_op;
         if (op == "<") tac_op = "lt";
         else if (op == ">") tac_op = "gt";
         else if (op == "<>") tac_op = "noteq";
         else if (op == "==") tac_op = "eq";
-        else if (op == "<=") tac_op = "le";
-        else if (op == ">=") tac_op = "ge";
+        else if (op == "<=") tac_op = "lte";
+        else if (op == ">=") tac_op = "gte";
         else
         {
             debug("语义错误：未知的关系运算符 " + op);
             throw std::runtime_error("Unknown relational operator: " + op);
         }
         
-        // 生成关系运算的TAC指令
+        // 生成关系运算的TAC指令（允许不同类型的操作数）
         tacTable.generate(tac_op, E1.name, E2.name, T.name);
         
         return T;
     }
-    else if ( currentToken.type == "and" )
+    else if (currentToken.type == "and" || currentToken.type == "or" ||
+             currentToken.type == "分号" || currentToken.type == "#" ||
+             currentToken.type == "end" || currentToken.type == "右括号" ||
+             currentToken.type == "else")
     {
         debug("推导：E->ε");
         return E1;
@@ -342,67 +314,25 @@ triple TACGenerator::translateTACE(const triple& E1)
     return E1;
 }
 
+triple TACGenerator::translateTACRelationExpression()
+{
+    debug("推导：<关系表达式>-><算术表达式>E");
+    triple E1 = translateTACMathExpression();
+    triple E = translateTACE(E1);
+    return E;
+}
+
 triple TACGenerator::translateTACMathExpression()
 {
-    debug("推导：<算术表达式> -> <term> H ");
+    debug("推导：<算术表达式>-><term>H");
     triple E1 = translateTACTerm();
     triple E = translateTACH(E1);
     return E;
 }
 
-triple TACGenerator::translateTACH(const triple& E1)
-{
-    debug("选择产生式：H-> 加法 <term> H | 减法 <term> H | ε ");
-    if (currentToken.type == "加法" || currentToken.type == "减法")
-    {
-        debug("推导：H-> " + currentToken.type + " <term> H");
-        std::string op = currentToken.value;
-        std::string opType = currentToken.type;
-        match(opType);
-        
-        triple E2 = translateTACTerm();
-        
-        // 创建临时变量
-        triple T = tempVarTable.createNewVariable();
-        T.type = "int";
-        
-        // 语义分析：检查操作数类型
-        if (E1.type != "int" || E2.type != "int")
-        {
-            debug("语义错误：算术运算需要int类型操作数，当前操作数类型为: " + E1.type + " 和 " + E2.type);
-            throw std::runtime_error("Arithmetic operation requires integer operands. Got: " + E1.type + " and " + E2.type);
-        }
-        
-        // 转换运算符为TAC指令
-        std::string tac_op;
-        if (op == "+") tac_op = "add";
-        else if (op == "-") tac_op = "sub";
-        else
-        {
-            debug("语义错误：未知的算术运算符 " + op);
-            throw std::runtime_error("Unknown arithmetic operator: " + op);
-        }
-        
-        // 生成算术运算的TAC指令
-        tacTable.generate(tac_op, E1.name, E2.name, T.name);
-        
-        return translateTACH(T);
-    }
-    else if (currentToken.type == "关系" || currentToken.type == "右括号" || 
-             currentToken.type == "分号" || currentToken.type == "#" || 
-             currentToken.type == "end" || currentToken.type == "and" || 
-             currentToken.type == "or")
-    {
-        debug("推导：H->ε");
-        return E1;
-    }
-    
-    return E1;
-}
-
 triple TACGenerator::translateTACTerm()
 {
-    debug("推导：<term>-><factor> I");
+    debug("推导：<term>-><factor>I");
     triple E1 = translateTACFactor();
     triple E = translateTACI(E1);
     return E;
@@ -423,13 +353,6 @@ triple TACGenerator::translateTACI(const triple& E1)
         triple T = tempVarTable.createNewVariable();
         T.type = "int";
         
-        // 语义分析：检查操作数类型
-        if (E1.type != "int" || E2.type != "int")
-        {
-            debug("语义错误：乘法运算需要int类型操作数");
-            throw std::runtime_error("Multiplication operation requires integer operands");
-        }
-        
         // 转换运算符为TAC指令
         std::string tac_op;
         if (op == "*") tac_op = "mul";
@@ -446,7 +369,11 @@ triple TACGenerator::translateTACI(const triple& E1)
         
         return translateTACI(T);
     }
-    else if (currentToken.type == "加法" || currentToken.type == "关系")
+    else if (currentToken.type == "加法" ||
+             currentToken.type == "关系" || currentToken.type == "右括号" ||
+             currentToken.type == "分号" || currentToken.type == "#" ||
+             currentToken.type == "end" || currentToken.type == "and" ||
+             currentToken.type == "or")
     {
         debug("推导：I->ε");
         return E1;
@@ -472,9 +399,9 @@ triple TACGenerator::translateTACFactor()
             throw std::runtime_error("Identifier not declared: " + name);
         }
         
-        // 获取标识符类型
-        std::string type = idenTable.getTypeByName(name);
-        return triple(name, type, name);  // 使用正确的构造函数
+        // 获取标识符信息
+        triple* id = idenTable.getIdentifierByName(name);
+        return triple(name, id->type, id->value);
     }
     else if (currentToken.type == "true" || currentToken.type == "false")
     {
@@ -482,7 +409,7 @@ triple TACGenerator::translateTACFactor()
         std::string value = currentToken.value;
         std::string type = "bool";
         match(currentToken.type);
-        return triple(value, type, value);  // 使用正确的构造函数
+        return triple(value, type, value);
     }
     else if (currentToken.type == "整数")
     {
@@ -506,7 +433,6 @@ triple TACGenerator::translateTACFactor()
         match("左括号");
         
         triple expression = translateTACExpression();
-        
         match("右括号");
         
         return expression;
@@ -529,40 +455,63 @@ triple TACGenerator::translateTACString()
 
 void TACGenerator::translateTACConditionalStatement()
 {
-    debug("推导：<条件语句>-> if 左括号 <表达式> 右括号 <复合语句> else <复合语句>");
+    debug("推导：<条件语句>-> if 左括号 <表达式> 右括号 <嵌套语句> elsePart");
     match("if");
     match("左括号");
     
     triple T = translateTACExpression();
     
-    // 语义分析：检查条件表达式是否为bool类型
-    if (T.type != "bool")
-    {
-        debug("语义错误：条件表达式必须是bool类型");
-        throw std::runtime_error("Condition expression must be boolean type");
-    }
-    
-    // 生成条件跳转TAC指令
+    // 生成条件跳转TAC指令（允许任何类型作为条件）
     tacTable.generate("jnz", T.name, "null", std::to_string(tacTable.NXQ() + 2));
     int falseIndex = tacTable.NXQ();
     tacTable.generate("jump", "null", "null", "0");
     
     match("右括号");
     
-    translateTACCompoundStatement();
+    translateTACNestedStatement();
     
-    int exitIndex = tacTable.NXQ();
-    tacTable.generate("jump", "null", "null", "0");
+    // 处理else if和else分支
+    std::vector<int> jumpOutIndices;
+    while (currentToken.type == "else") {
+        // 回填false分支的目标地址
+        tacTable.backpatch(falseIndex, std::to_string(tacTable.NXQ() + 2));
+        
+        // 添加跳出语句
+        jumpOutIndices.push_back(tacTable.NXQ());
+        tacTable.generate("jump", "null", "null", "0");
+        
+        match("else");
+        
+        // 检查是否是else if分支
+        if (currentToken.type == "if") {
+            match("if");
+            match("左括号");
+            
+            triple elifCondition = translateTACExpression();
+            
+            // 生成条件跳转TAC指令（允许任何类型作为条件）
+            tacTable.generate("jnz", elifCondition.name, "null", std::to_string(tacTable.NXQ() + 2));
+            falseIndex = tacTable.NXQ();
+            tacTable.generate("jump", "null", "null", "0");
+            
+            match("右括号");
+            
+            translateTACNestedStatement();
+        } else {
+            // 处理else分支
+            translateTACNestedStatement();
+            // 结束循环
+            break;
+        }
+    }
     
     // 回填false分支的目标地址
     tacTable.backpatch(falseIndex, std::to_string(tacTable.NXQ() + 1));
     
-    match("else");
-    
-    translateTACCompoundStatement();
-    
-    // 回填exit跳转的目标地址
-    tacTable.backpatch(exitIndex, std::to_string(tacTable.NXQ() + 1));
+    // 回填所有跳出语句的目标地址
+    for (int index : jumpOutIndices) {
+        tacTable.backpatch(index, std::to_string(tacTable.NXQ() + 1));
+    }
 }
 
 void TACGenerator::translateTACCompoundStatement()
@@ -573,7 +522,6 @@ void TACGenerator::translateTACCompoundStatement()
     match("end");
 }
 
-// 添加循环语句处理函数
 void TACGenerator::translateTACLoopStatement()
 {
     debug("推导：<循环语句>->while 左括号 <表达式> 右括号 冒号 <嵌套语句>");
@@ -586,14 +534,7 @@ void TACGenerator::translateTACLoopStatement()
     
     triple condition = translateTACExpression();
     
-    // 语义分析：检查条件表达式是否为bool类型
-    if (condition.type != "bool")
-    {
-        debug("语义错误：循环条件表达式必须是bool类型");
-        throw std::runtime_error("Loop condition expression must be boolean type");
-    }
-    
-    // 生成条件跳转TAC指令
+    // 生成条件跳转TAC指令（允许任何类型作为条件）
     tacTable.generate("jnz", condition.name, "null", std::to_string(tacTable.NXQ() + 2));
     int falseIndex = tacTable.NXQ();
     tacTable.generate("jump", "null", "null", "0");
@@ -622,6 +563,66 @@ void TACGenerator::translateTACNestedStatement()
     } else {
         debug("推导：<嵌套语句>-><语句> 分号");
         translateTACStatement();
-        match("分号");
+        // 只有当后面还有语句时才需要分号
+        if (currentToken.type != "else" && currentToken.type != "end" &&
+            currentToken.type != "#" && currentToken.type != "right-brace") {
+            match("分号");
+        }
     }
+}
+
+triple TACGenerator::translateTACH(const triple& E1)
+{
+    debug("选择产生式：H-> 加法 <term> H  | ε ");
+    if (currentToken.type == "加法")
+    {
+        debug("推导：H-> " + currentToken.type + " <term> H");
+        std::string op = currentToken.value;
+        std::string opType = currentToken.type;
+        match(opType);
+        
+        triple E2 = translateTACTerm();
+        
+        // 创建临时变量
+        triple T = tempVarTable.createNewVariable();
+        
+        // 确定结果类型（优先级：string > int > bool）
+        if (E1.type == "string" || E2.type == "string")
+        {
+            T.type = "string";
+        }
+        else if (E1.type == "int" || E2.type == "int")
+        {
+            T.type = "int";
+        }
+        else
+        {
+            T.type = "int"; // 默认为int
+        }
+        
+        // 转换运算符为TAC指令
+        std::string tac_op;
+        if (op == "+") tac_op = "add";
+        else if (op == "-") tac_op = "sub";
+        else
+        {
+            debug("语义错误：未知的算术运算符 " + op);
+            throw std::runtime_error("Unknown arithmetic operator: " + op);
+        }
+        
+        // 生成算术运算的TAC指令
+        tacTable.generate(tac_op, E1.name, E2.name, T.name);
+        
+        return translateTACH(T);
+    }
+    else if (currentToken.type == "关系" || currentToken.type == "右括号" || 
+             currentToken.type == "分号" || currentToken.type == "#" || 
+             currentToken.type == "end" || currentToken.type == "and" || 
+             currentToken.type == "or")
+    {
+        debug("推导：H->ε");
+        return E1;
+    }
+    
+    return E1;
 }

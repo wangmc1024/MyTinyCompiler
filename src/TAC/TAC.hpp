@@ -1,15 +1,12 @@
 #pragma once
-
-#include <string>
-#include <vector>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <memory>
 #include "../lexical/lexical.hpp"
+#include <iostream>
+#include <vector>
+#include <string>
+#include <map>
 
-// TAC部分依赖的类定义
-
+// 三元组类
+// 在triple类中添加类型转换辅助函数
 class triple
 {
 public:
@@ -17,30 +14,106 @@ public:
     std::string type;
     std::string value;
 
+    triple()
+        : name(""), type(""), value("") {}
+
     triple(const std::string& name)
         : name(name), type(""), value("") {}
-
-    // 添加接受三个参数的构造函数
+    
     triple(const std::string& name, const std::string& type, const std::string& value)
         : name(name), type(type), value(value) {}
 
-    int getValueAsINT32()
+    int getValueAsINT32() const
     {
-        if (type != "int" || value.empty())
-            return -1;
-        return std::stoi(value);
+        if (type == "int")
+        {
+            try
+            {
+                return std::stoi(value);
+            }
+            catch (const std::exception&)
+            {
+                return 0;
+            }
+        }
+        else if (type == "bool")
+        {
+            return (value == "true") ? 1 : 0;
+        }
+        return 0;
     }
 
-    bool getValueAsBOOL()
+    bool getValueAsBOOL() const
     {
-        if (type != "bool" || value.empty())
-            return false;
-        return value == "true";
+        if (type == "bool")
+        {
+            if (value == "true")
+                return true;
+            else if (value == "false")
+                return false;
+        }
+        else if (type == "int")
+        {
+            try
+            {
+                return std::stoi(value) != 0;
+            }
+            catch (const std::exception&)
+            {
+                return false;
+            }
+        }
+        return false;
     }
 
     std::string toString() const
     {
-        return " " + name + "|  " + type + "|  " + value;
+        return " " + name + "| " + type + "| " + value + " ";
+    }
+    
+    // 类型转换函数
+    static std::string convertToBool(const triple& t)
+    {
+        if (t.type == "bool")
+            return t.value;
+        else if (t.type == "int")
+        {
+            try
+            {
+                return (std::stoi(t.value) != 0) ? "true" : "false";
+            }
+            catch (const std::exception&)
+            {
+                return "false";
+            }
+        }
+        else if (t.type == "string")
+        {
+            return (t.value.empty()) ? "false" : "true";
+        }
+        return "false";
+    }
+    
+    static std::string convertToInt(const triple& t)
+    {
+        if (t.type == "int")
+            return t.value;
+        else if (t.type == "bool")
+        {
+            return (t.value == "true") ? "1" : "0";
+        }
+        else if (t.type == "string")
+        {
+            try
+            {
+                return std::to_string(std::stoi(t.value));
+            }
+            catch (const std::exception&)
+            {
+                return "0";
+            }
+        }
+        return "0";
     }
 };
 
@@ -65,26 +138,31 @@ public:
         return nullptr;
     }
 
-    // 添加缺失的方法
-    bool identifierExists(const std::string& name)
+    bool identifierExists(const std::string& name) const
     {
-        return getIdentifierByName(name) != nullptr;
+        for (const auto& t : table)
+        {
+            if (t.name == name)
+                return true;
+        }
+        return false;
     }
 
-    // 添加缺失的方法
-    std::string getTypeByName(const std::string& name)
+    std::string getTypeByName(const std::string& name) const
     {
-        triple* temp = getIdentifierByName(name);
-        if (temp != nullptr)
-            return temp->type;
+        for (const auto& t : table)
+        {
+            if (t.name == name)
+                return t.type;
+        }
         return "";
     }
 
     bool Add(const std::string& name)
     {
-        if (getIdentifierByName(name) != nullptr)
+        if (identifierExists(name))
             return false;
-        table.emplace_back(name);
+        table.emplace_back(name, "", "");
         return true;
     }
 
@@ -116,6 +194,11 @@ public:
             os << "|" << t.toString() << "|" << std::endl;
         }
     }
+    
+    const std::vector<triple>& getTable() const
+    {
+        return table;
+    }
 };
 
 class tempVariableTable
@@ -141,8 +224,6 @@ public:
         return table;
     }
 };
-
-
 
 // TAC类
 class TAC
@@ -202,16 +283,13 @@ public:
             result.push_back("(" + std::to_string(i) + ") " + table[i].toString());
         }
         return result;
-
     }
-
 
     const std::vector<TAC>& getTable() const
     {
         return table;
     }
 };
-
 
 class TACGenerator{
 private:
@@ -259,19 +337,24 @@ private:
         }
     }
 
+    // 程序
     void translateTACProgram();
+    
+    // 变量声明部分
     void translateTACDeclareSection();
     void translateTACA();
     void translateTACDeclareStatement();
     void translateTACVarList(const std::string& type);
     void translateTACB(const std::string& type);
+    
+    // 语句部分
     void translateTACStatementSection();
     void translateTACC();
     void translateTACStatement();
     void translateTACAssignmentStatement();
     void translateTACConditionalStatement();
-    void translateTACLoopStatement();  // 添加循环语句处理函数声明
-    void translateTACNestedStatement();  // 添加嵌套语句处理函数声明
+    void translateTACLoopStatement();
+    void translateTACNestedStatement();
     void translateTACCompoundStatement();
     
     // 表达式相关函数
@@ -283,9 +366,8 @@ private:
     triple translateTACRelationExpression();
     triple translateTACE(const triple& E1);
     triple translateTACMathExpression();
-    triple translateTACF(const triple& E1);
-    triple translateTACTerm();
     triple translateTACH(const triple& E1);
+    triple translateTACTerm();
     triple translateTACI(const triple& E1);
     triple translateTACFactor();
     triple translateTACString();
