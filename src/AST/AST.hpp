@@ -142,15 +142,6 @@ public:
         }
         return false;
     }
-
-    void dump(std::ostream& os) const
-    {
-        os << "| \t name| \t type| \t value|" << std::endl;
-        for (const auto& t : table)
-        {
-            os << "|" << t.toString() << "|" << std::endl;
-        }
-    }
 };
 
 class tempVariableTable
@@ -238,15 +229,6 @@ public:
         return str;
     }
 
-    void saveToTXT(const std::string& path) const
-    {
-        std::ofstream file(path);
-        if (file.is_open())
-        {
-            file << toString();
-            file.close();
-        }
-    }
 };
 
 // AST语义分析类
@@ -354,10 +336,6 @@ public:
         return ast;
     }
 
-    void dumpIdentifierTable() const
-    {
-        idenTable.dump(std::cout);
-    }
 
     const std::vector<std::string>& getDebugInfo() const
     {

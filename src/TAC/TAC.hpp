@@ -185,16 +185,6 @@ public:
         temp->value = value;
         return true;
     }
-
-    void dump(std::ostream& os) const
-    {
-        os << "| \t name| \t type| \t value|" << std::endl;
-        for (const auto& t : table)
-        {
-            os << "|" << t.toString() << "|" << std::endl;
-        }
-    }
-    
     const std::vector<triple>& getTable() const
     {
         return table;

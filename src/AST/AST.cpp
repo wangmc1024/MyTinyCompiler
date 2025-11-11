@@ -5,7 +5,7 @@
 node ASTSemanticAnalyzer::translateASTProgram()
 {
     debug("推导：<程序> -> <变量说明部分><语句部分>");
-    node programNode("程序");
+    node programNode("topLevel");
     
     node declareSection = translateASTDeclareSection();
     node statementSection = translateASTStatementSection();
@@ -20,7 +20,7 @@ node ASTSemanticAnalyzer::translateASTProgram()
 node ASTSemanticAnalyzer::translateASTDeclareSection()
 {
     debug("推导：<变量说明部分>-><变量声明语句>分号A");
-    node declareSectionNode("变量说明部分");
+    node declareSectionNode("declareList");
     
     node declareStatement = translateASTDeclareStatement();
     match("分号");
@@ -36,7 +36,7 @@ node ASTSemanticAnalyzer::translateASTDeclareSection()
 node ASTSemanticAnalyzer::translateASTA()
 {
     debug("选择产生式：A-><变量说明语句>分号A|ε");
-    node ANode("A");
+    node ANode("linkDeclareList");
     
     if (currentToken.type == "变量说明")
     {
@@ -46,13 +46,12 @@ node ASTSemanticAnalyzer::translateASTA()
         node AChild = translateASTA();
         
         ANode.addChild(declareStatement);
-        ANode.addChild(node("分号"));
         ANode.addChild(AChild);
     }
     else if (currentToken.type == "标识符" || currentToken.type == "if" || currentToken.type == "while")
     {
         debug("推导：A->ε");
-        ANode = node("ε");
+        ANode = node("emptyDeclareList");
     }
     
     return ANode;
@@ -61,10 +60,10 @@ node ASTSemanticAnalyzer::translateASTA()
 node ASTSemanticAnalyzer::translateASTDeclareStatement()
 {
     debug("推导：<变量说明语句>->变量说明<标识符列表>");
-    node declareStatementNode("变量说明语句");
+    node declareStatementNode("declare");
     
     std::string type = currentToken.value;
-    node typeNode(currentToken.toString());
+    node typeNode(type);
     match("变量说明");
     
     node varList = translateASTVarList(type);
@@ -78,10 +77,10 @@ node ASTSemanticAnalyzer::translateASTDeclareStatement()
 node ASTSemanticAnalyzer::translateASTVarList(const std::string& type)
 {
     debug("推导：<标识符列表>->标识符B");
-    node varListNode("标识符列表");
+    node varListNode("varList");
     
     std::string name = currentToken.value;
-    node idNode(currentToken.toString());
+    node idNode(name);
     match("标识符");
     
     // 语义检查和添加到标识符表
@@ -108,16 +107,16 @@ node ASTSemanticAnalyzer::translateASTVarList(const std::string& type)
 node ASTSemanticAnalyzer::translateASTB(const std::string& type)
 {
     debug("选择产生式：B->逗号 标识符 B |ε");
-    node BNode("B");
+    node BNode("linkVarList");
     
     if (currentToken.type == "逗号")
     {
         debug("推导：B->逗号 标识符 B");
-        node commaNode(currentToken.toString());
+ 
         match("逗号");
         
         std::string name = currentToken.value;
-        node idNode(currentToken.toString());
+        node idNode(currentToken.value);
         match("标识符");
         
         // 语义检查和添加到标识符表
@@ -135,14 +134,13 @@ node ASTSemanticAnalyzer::translateASTB(const std::string& type)
         
         node BChild = translateASTB(type);
         
-        BNode.addChild(commaNode);
         BNode.addChild(idNode);
         BNode.addChild(BChild);
     }
     else if (currentToken.type == "分号")
     {
         debug("推导：B->ε");
-        BNode = node("ε");
+        BNode = node("emptyVarList");
     }
     
     return BNode;
@@ -151,7 +149,7 @@ node ASTSemanticAnalyzer::translateASTB(const std::string& type)
 node ASTSemanticAnalyzer::translateASTStatementSection()
 {
     debug("推导：<语句部分>-><语句>C");
-    node statementSectionNode("语句部分");
+    node statementSectionNode("seqList");
     
     node statement = translateASTStatement();
     node C = translateASTC();
@@ -165,25 +163,23 @@ node ASTSemanticAnalyzer::translateASTStatementSection()
 node ASTSemanticAnalyzer::translateASTC()
 {
     debug("选择产生式：C->分号<语句>C|ε");
-    node CNode("C");
+    node CNode("linkSeqList");
     
     if (currentToken.type == "分号")
     {
         debug("推导：C->分号<语句>C");
-        node semicolonNode(currentToken.toString());
         match("分号");
         
         node statement = translateASTStatement();
         node CChild = translateASTC();
         
-        CNode.addChild(semicolonNode);
         CNode.addChild(statement);
         CNode.addChild(CChild);
     }
     else if (currentToken.type == "#" || currentToken.type == "end")
     {
         debug("推导：C->ε");
-        CNode = node("ε");
+        CNode = node("emptySeqList");
     }
     
     return CNode;
@@ -192,7 +188,7 @@ node ASTSemanticAnalyzer::translateASTC()
 node ASTSemanticAnalyzer::translateASTStatement()
 {
     debug("选择产生式：<语句>-><赋值语句>|<条件语句>|<循环语句>");
-    node statementNode("语句");
+    node statementNode("Statement");
     
     if (currentToken.type == "标识符")
     {
@@ -219,18 +215,17 @@ node ASTSemanticAnalyzer::translateASTStatement()
 node ASTSemanticAnalyzer::translateASTAssignmentStatement()
 {
     debug("推导：<赋值语句>->标识符 赋值号 <表达式>");
-    node assignmentNode("赋值语句");
+    node assignmentNode("assign");
     
     std::string name = currentToken.value;
-    node idNode(currentToken.toString());
+    node idNode(currentToken.value);
     match("标识符");
     
-    node assignNode(currentToken.toString());
+
     match("赋值号");
     
     node expression = translateASTExpression();
     
-    // 语义检查：检查标识符是否已声明
     if (!idenTable.identifierExists(name))
     {
         debug("语义错误：标识符 " + name + " 未声明");
@@ -238,16 +233,18 @@ node ASTSemanticAnalyzer::translateASTAssignmentStatement()
     }
     
     assignmentNode.addChild(idNode);
-    assignmentNode.addChild(assignNode);
     assignmentNode.addChild(expression);
     
     return assignmentNode;
 }
 
+#pragma region 表达式相关函数
+//----------------------------------------------------------------------
+
 node ASTSemanticAnalyzer::translateASTExpression()
 {
     debug("推导：<表达式>-> <conjunction> D");
-    node expressionNode("表达式");
+    node expressionNode("expression");
     
     node conjunction = translateASTConjunction();
     node D = translateASTD(conjunction);
@@ -266,7 +263,7 @@ node ASTSemanticAnalyzer::translateASTD(const node& E1)
     if (currentToken.type == "or")
     {
         debug("推导：D-> or <conjunction> D");
-        node orNode(currentToken.toString());
+        node orNode(currentToken.value);
         match("or");
         
         node conjunction = translateASTConjunction();
@@ -309,7 +306,7 @@ node ASTSemanticAnalyzer::translateASTG(const node& E1)
     if (currentToken.type == "and")
     {
         debug("推导：G-> and <inversion> G");
-        node andNode(currentToken.toString());
+        node andNode(currentToken.value);
         match("and");
         
         node inversion = translateASTInversion();
@@ -341,7 +338,7 @@ node ASTSemanticAnalyzer::translateASTInversion()
     if (currentToken.type == "not")
     {
         debug("推导：<inversion>-> not <inversion>");
-        node notNode(currentToken.toString());
+        node notNode(currentToken.value);
         match("not");
         
         node inversionChild = translateASTInversion();
@@ -381,7 +378,7 @@ node ASTSemanticAnalyzer::translateASTE(const node& E1)
     if (currentToken.type == "关系")
     {
         debug("推导：E-> 关系 <算术表达式> E");
-        node relNode(currentToken.toString());
+        node relNode(currentToken.value);
         match("关系");
         
         node mathExpr = translateASTMathExpression();
@@ -438,7 +435,7 @@ node ASTSemanticAnalyzer::translateASTH(const node& E1)
     if (currentToken.type == "加法" )
     {
         debug("推导：H-> " + currentToken.type + " <term> H");
-        node opNode(currentToken.toString());
+        node opNode(currentToken.value);
         std::string opType = currentToken.type;
         match(opType);
         
@@ -469,7 +466,7 @@ node ASTSemanticAnalyzer::translateASTI(const node& E1)
     if (currentToken.type == "乘法")
     {
         debug("推导：I-> 乘法 <factor> I");
-        node mulNode(currentToken.toString());
+        node mulNode(currentToken.value);
         match("乘法");
         
         node factor = translateASTFactor();
@@ -500,7 +497,7 @@ node ASTSemanticAnalyzer::translateASTFactor()
     if (currentToken.type == "标识符")
     {
         debug("推导：<factor>-> 标识符");
-        node idNode(currentToken.toString());
+        node idNode(currentToken.value);
         std::string name = currentToken.value;
         match("标识符");
         
@@ -516,33 +513,33 @@ node ASTSemanticAnalyzer::translateASTFactor()
     else if (currentToken.type == "true" || currentToken.type == "false")
     {
         debug("推导：<factor>-> " + currentToken.type);
-        node boolNode(currentToken.toString());
+        node boolNode(currentToken.value);
         match(currentToken.type);
         factorNode.addChild(boolNode);
     }
     else if (currentToken.type == "整数")
     {
         debug("推导：<factor>-> 整数");
-        node intNode(currentToken.toString());
+        node intNode(currentToken.value);
         match("整数");
         factorNode.addChild(intNode);
     }
     else if (currentToken.type == "字符串")
     {
         debug("推导：<factor>-> 字符串");
-        node stringNode(currentToken.toString());
+        node stringNode(currentToken.value);
         match("字符串");
         factorNode.addChild(stringNode);
     }
     else if (currentToken.type == "左括号")
     {
         debug("推导：<factor>-> 左括号 <表达式> 右括号");
-        node leftParen(currentToken.toString());
+        node leftParen("左括号");
         match("左括号");
         
         node expression = translateASTExpression();
         
-        node rightParen(currentToken.toString());
+        node rightParen("右括号");
         match("右括号");
         
         factorNode.addChild(leftParen);
@@ -557,56 +554,31 @@ node ASTSemanticAnalyzer::translateASTFactor()
     return factorNode;
 }
 
-node ASTSemanticAnalyzer::translateASTString()
-{
-    debug("推导：<字符串>-> 引号 字母序列 引号");
-    node stringNode("字符串");
-    
-    node quoteNode(currentToken.toString());
-    match("引号");
-    
-    node letterSeqNode(currentToken.toString());
-    match("字母序列");
-    
-    node quoteNode2(currentToken.toString());
-    match("引号");
-    
-    stringNode.addChild(quoteNode);
-    stringNode.addChild(letterSeqNode);
-    stringNode.addChild(quoteNode2);
-    
-    return stringNode;
-}
+#pragma endregion 表达式相关函数
 
+//-------------------------------------------------------------
 node ASTSemanticAnalyzer::translateASTConditionalStatement()
 {
     debug("推导：<条件语句>-> if 左括号 <表达式> 右括号 <嵌套语句> else <嵌套语句>");
-    node condStmtNode("条件语句");
+    node condStmtNode("ifThenElse");
     
-    node ifNode(currentToken.toString());
+ 
     match("if");
     
-    node leftParen(currentToken.toString());
     match("左括号");
     
     node expression = translateASTExpression();
-    
-    node rightParen(currentToken.toString());
+
     match("右括号");
     
     node nestedStmt1 = translateASTNestedStatement();
     
-    node elseNode(currentToken.toString());
     match("else");
     
     node nestedStmt2 = translateASTNestedStatement();
-    
-    condStmtNode.addChild(ifNode);
-    condStmtNode.addChild(leftParen);
+
     condStmtNode.addChild(expression);
-    condStmtNode.addChild(rightParen);
     condStmtNode.addChild(nestedStmt1);
-    condStmtNode.addChild(elseNode);
     condStmtNode.addChild(nestedStmt2);
     
     return condStmtNode;
@@ -615,29 +587,21 @@ node ASTSemanticAnalyzer::translateASTConditionalStatement()
 node ASTSemanticAnalyzer::translateASTLoopStatement()
 {
     debug("推导：<循环语句>->while 左括号 <表达式> 右括号 冒号 <嵌套语句>");
-    node loopStmtNode("循环语句");
+    node loopStmtNode("while");
     
-    node whileNode(currentToken.toString());
     match("while");
-    
-    node leftParen(currentToken.toString());
+
     match("左括号");
     
     node expression = translateASTExpression();
-    
-    node rightParen(currentToken.toString());
+
     match("右括号");
     
-    node colonNode(currentToken.toString());
+
     match("冒号");
     
     node nestedStmt = translateASTNestedStatement();
-    
-    loopStmtNode.addChild(whileNode);
-    loopStmtNode.addChild(leftParen);
     loopStmtNode.addChild(expression);
-    loopStmtNode.addChild(rightParen);
-    loopStmtNode.addChild(colonNode);
     loopStmtNode.addChild(nestedStmt);
     
     return loopStmtNode;
@@ -652,17 +616,15 @@ node ASTSemanticAnalyzer::translateASTNestedStatement()
     {
         debug("推导：<嵌套语句>-><语句> 分号");
         node statement = translateASTStatement();
-        node semicolon(currentToken.toString());
+ 
         match("分号");
         
         nestedStmtNode.addChild(statement);
-        nestedStmtNode.addChild(semicolon);
+
     }
     else if (currentToken.type == "begin")
     {
         debug("推导：<嵌套语句>-><复合语句>");
-        node compoundStmt = translateASTCompoundStatement();
-        nestedStmtNode.addChild(compoundStmt);
     }
     
     return nestedStmtNode;
@@ -673,17 +635,12 @@ node ASTSemanticAnalyzer::translateASTCompoundStatement()
     debug("推导：<复合语句>-> begin <语句部分> end");
     node compoundStmtNode("复合语句");
     
-    node beginNode(currentToken.toString());
+
     match("begin");
     
     node statementSection = translateASTStatementSection();
-    
-    node endNode(currentToken.toString());
+
     match("end");
-    
-    compoundStmtNode.addChild(beginNode);
     compoundStmtNode.addChild(statementSection);
-    compoundStmtNode.addChild(endNode);
-    
     return compoundStmtNode;
 }

@@ -9,9 +9,8 @@ import AST
 
 class MyDialog(QDialog):
     def __init__(self):
-        super().__init__()  # 初始化父类QDialog
+        super().__init__()
         
-        # 初始化UI
         self.ui = Ui_compiler()
         self.ui.setupUi(self)
 
@@ -40,6 +39,7 @@ class MyDialog(QDialog):
             debugInfo = lexer.getDebugInfo()
             for info in debugInfo:
                 self.ui.debug.addItem(info)
+
         except Exception as e:
             self.ui.output.addItem(f"词法分析错误: {str(e)}")
             
@@ -80,6 +80,9 @@ class MyDialog(QDialog):
             if ast:
                 astInfo = ast.toString()
                 self.ui.output.addItem(astInfo)
+            
+                with open("outputAST.txt", "w", encoding="utf-8") as f:
+                    f.write(astInfo)
             else:
                 self.ui.output.addItem("AST生成失败")
             
@@ -91,6 +94,8 @@ class MyDialog(QDialog):
             debugInfo = astAnalyzer.getDebugInfo()
             for info in debugInfo:
                 self.ui.debug.addItem(info)
+        
+            
         except Exception as e:
             self.ui.output.addItem(f"AST分析错误: {str(e)}")
             
@@ -116,6 +121,9 @@ class MyDialog(QDialog):
             debugInfo = tacGenerator.getDebugInfo()
             for info in debugInfo:
                 self.ui.debug.addItem(info)
+                
+            with open("outputTAC.txt", "w", encoding="utf-8") as f:
+                f.write("\n".join(midCode))
         except Exception as e:
             self.ui.output.addItem(f"TAC分析错误: {str(e)}")
 
