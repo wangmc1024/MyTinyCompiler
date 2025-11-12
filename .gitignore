@@ -8,3 +8,5 @@
 *.ui
 /__pycache__
 *.txt
+./icon.ico
+*.qrc

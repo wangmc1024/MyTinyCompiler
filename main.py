@@ -6,7 +6,7 @@ import syntactic
 import TAC
 import AST
 import convert_ast
-
+import time
 
 class MyDialog(QDialog):
     def __init__(self):
@@ -65,7 +65,7 @@ class MyDialog(QDialog):
         except Exception as e:
             self.ui.output.addItem(f"语法分析错误: {str(e)}")
          
-    def AST_analysis(self):
+    def AST_analysis(self):     
         self.ui.output.clear()
         self.ui.debug.clear()
         try:
@@ -102,8 +102,10 @@ class MyDialog(QDialog):
             
         except Exception as e:
             self.ui.output.addItem(f"AST分析错误: {str(e)}")
+
             
-    def TAC_analysis(self):         
+    def TAC_analysis(self): 
+  
         self.ui.output.clear()
         self.ui.debug.clear()
         try:

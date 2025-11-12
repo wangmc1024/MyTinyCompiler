@@ -18,12 +18,16 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
 from PySide6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QListWidget,
     QListWidgetItem, QPushButton, QSizePolicy, QTextEdit,
     QWidget)
+import icon
 
 class Ui_compiler(object):
     def setupUi(self, compiler):
         if not compiler.objectName():
             compiler.setObjectName(u"compiler")
         compiler.resize(731, 604)
+        icon = QIcon()
+        icon.addFile(u":/icon/icon.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        compiler.setWindowIcon(icon)
         self.horizontalLayoutWidget = QWidget(compiler)
         self.horizontalLayoutWidget.setObjectName(u"horizontalLayoutWidget")
         self.horizontalLayoutWidget.setGeometry(QRect(9, 10, 711, 80))
@@ -101,7 +105,7 @@ class Ui_compiler(object):
     # setupUi
 
     def retranslateUi(self, compiler):
-        compiler.setWindowTitle(QCoreApplication.translate("compiler", u"Dialog", None))
+        compiler.setWindowTitle(QCoreApplication.translate("compiler", u"\u5c0f\u578b\u7f16\u8bd1\u5668", None))
         self.lexical.setText(QCoreApplication.translate("compiler", u"\u8bcd\u6cd5", None))
         self.syntactic.setText(QCoreApplication.translate("compiler", u"\u8bed\u6cd5", None))
         self.TAC.setText(QCoreApplication.translate("compiler", u"\u8bed\u4e49TAC", None))
