@@ -7,3 +7,4 @@
 /dist
 *.ui
 /__pycache__
+*.txt

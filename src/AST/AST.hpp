@@ -49,7 +49,7 @@ public:
         table.clear();
     }
 
-    // 修改：返回triple对象而不是指针
+    
     triple getIdentifierByName(const std::string& name)
     {
         for (auto& t : table)
@@ -61,7 +61,7 @@ public:
         return triple("");
     }
 
-    // 添加：检查标识符是否存在的方法（保留一个定义）
+    
     bool identifierExists(const std::string& name)
     {
         for (const auto& t : table)
@@ -144,34 +144,15 @@ public:
     }
 };
 
-class tempVariableTable
-{
-private:
-    std::vector<triple> table;
-
-public:
-    tempVariableTable()
-    {
-        table.clear();
-    }
-
-    triple createNewVariable()
-    {
-        triple temp("T" + std::to_string(table.size()));
-        table.push_back(temp);
-        return temp;
-    }
-};
 
 
-// AST节点类
 class node
 {
 private:
-    std::string root;
     std::vector<node> children;
 
 public:
+    std::string root;
     node(const std::string& root)
         : root(root)
     {
@@ -229,6 +210,10 @@ public:
         return str;
     }
 
+    std::vector<node> getChildren(){
+        return children;
+    }
+
 };
 
 // AST语义分析类
@@ -238,7 +223,6 @@ private:
     Lexer& lexer;
     Token currentToken;
     identifierTable idenTable;
-    tempVariableTable tempVarTable;
     node ast;  // 修改：直接使用node对象而不是shared_ptr
     bool isDebug;
     std::vector<std::string> debugInfo;
@@ -296,17 +280,17 @@ private:
     
     // 表达式相关函数
     node translateASTExpression();
-    node translateASTD(const node& E1);
+    node translateASTD();
     node translateASTConjunction();
-    node translateASTG(const node& E1);
+    node translateASTG();
     node translateASTInversion();
     node translateASTRelationExpression();
-    node translateASTE(const node& E1);
+    node translateASTE();
     node translateASTMathExpression();
-    node translateASTF(const node& E1);
+    node translateASTF();
     node translateASTTerm();
-    node translateASTH(const node& E1);
-    node translateASTI(const node& E1);
+    node translateASTH();
+    node translateASTI();
     node translateASTFactor();
     node translateASTString();
 
@@ -324,7 +308,6 @@ public:
         isDebug = debugMode;
         
         idenTable = identifierTable();
-        tempVarTable = tempVariableTable();
 
         debug(currentToken.toString());
         

@@ -5,6 +5,7 @@ import lexical
 import syntactic
 import TAC
 import AST
+import convert_ast
 
 
 class MyDialog(QDialog):
@@ -77,12 +78,15 @@ class MyDialog(QDialog):
             astAnalyzer = AST.ASTSemanticAnalyzer(lexer)
             astAnalyzer.analyze()
             ast = astAnalyzer.getAST()
+
+            
             if ast:
                 astInfo = ast.toString()
                 self.ui.output.addItem(astInfo)
             
                 with open("outputAST.txt", "w", encoding="utf-8") as f:
                     f.write(astInfo)
+                convert_ast.main(ast)
             else:
                 self.ui.output.addItem("AST生成失败")
             

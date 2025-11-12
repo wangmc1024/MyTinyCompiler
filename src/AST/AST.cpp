@@ -27,7 +27,6 @@ node ASTSemanticAnalyzer::translateASTDeclareSection()
     node A = translateASTA();
     
     declareSectionNode.addChild(declareStatement);
-    declareSectionNode.addChild(node("分号"));
     declareSectionNode.addChild(A);
     
     return declareSectionNode;
@@ -247,7 +246,7 @@ node ASTSemanticAnalyzer::translateASTExpression()
     node expressionNode("expression");
     
     node conjunction = translateASTConjunction();
-    node D = translateASTD(conjunction);
+    node D = translateASTD();
     
     expressionNode.addChild(conjunction);
     expressionNode.addChild(D);
@@ -255,33 +254,50 @@ node ASTSemanticAnalyzer::translateASTExpression()
     return expressionNode;
 }
 
-node ASTSemanticAnalyzer::translateASTD(const node& E1)
+node ASTSemanticAnalyzer::translateASTD()
 {
     debug("选择产生式：D-> or <conjunction> D| ε");
-    node DNode("D");
+
     
     if (currentToken.type == "or")
     {
         debug("推导：D-> or <conjunction> D");
-        node orNode(currentToken.value);
+        node orNode("or");
         match("or");
         
-        node conjunction = translateASTConjunction();
-        node DChild = translateASTD(conjunction);
+        node c1 = translateASTConjunction();
+        node c2 = translateASTD();
         
-        DNode.addChild(orNode);
-        DNode.addChild(conjunction);
-        DNode.addChild(DChild);
+        if(c2.root == "") return node("");
+
+        if(c2.root == "empty"){
+            orNode.addChild(c1);
+            return orNode;
+        }
+        else{
+            orNode.addChild(c1);
+
+            node insertPoint = node("");
+            bool result = c2.getFirstLeftNonLeafChild(insertPoint);
+
+            if(!result){
+                c2.addNodeAsFirstChild(orNode);
+            }
+            else{
+                insertPoint.addNodeAsFirstChild(orNode);
+            }
+            return c2;
+        }
     }
     else if (currentToken.type == "分号" || currentToken.type == "#" || 
              currentToken.type == "end" || currentToken.type == "右括号"
             )
     {
         debug("推导：D->ε");
-        DNode = node("ε");
+        return node("empty");
     }
     
-    return DNode;
+    return node("");
 }
 
 node ASTSemanticAnalyzer::translateASTConjunction()
@@ -290,7 +306,7 @@ node ASTSemanticAnalyzer::translateASTConjunction()
     node conjunctionNode("conjunction");
     
     node inversion = translateASTInversion();
-    node G = translateASTG(inversion);
+    node G = translateASTG();
     
     conjunctionNode.addChild(inversion);
     conjunctionNode.addChild(G);
@@ -298,23 +314,40 @@ node ASTSemanticAnalyzer::translateASTConjunction()
     return conjunctionNode;
 }
 
-node ASTSemanticAnalyzer::translateASTG(const node& E1)
+node ASTSemanticAnalyzer::translateASTG()
 {
     debug("选择产生式：G-> and <inversion> G | ε");
-    node GNode("G");
     
     if (currentToken.type == "and")
     {
         debug("推导：G-> and <inversion> G");
-        node andNode(currentToken.value);
         match("and");
+        node andNode("and");
+
+        node c1 = translateASTInversion();
+        node c2 = translateASTG();
+
+        if(c2.root == "") return node("");
+
+        if(c2.root == "empty"){
+            andNode.addChild(c1);
+            return andNode;
+        }
+        else{
+            andNode.addChild(c1);
+
+            node insertPoint = node("");
+            bool result = c2.getFirstLeftNonLeafChild(insertPoint);
+
+            if(!result){
+                c2.addNodeAsFirstChild(andNode);
+            }
+            else{
+                insertPoint.addNodeAsFirstChild(andNode);
+            }
+            return c2;
+        }
         
-        node inversion = translateASTInversion();
-        node GChild = translateASTG(inversion);
-        
-        GNode.addChild(andNode);
-        GNode.addChild(inversion);
-        GNode.addChild(GChild);
     }
     else if (currentToken.type == "分号" || 
              currentToken.type == "or" ||
@@ -324,93 +357,118 @@ node ASTSemanticAnalyzer::translateASTG(const node& E1)
              )
     {
         debug("推导：G->ε");
-        GNode = node("ε");
+        return node("empty");
     }
     
-    return GNode;
+    return node("");
 }
 
 node ASTSemanticAnalyzer::translateASTInversion()
 {
     debug("选择产生式：<inversion>-> not <inversion> | <关系表达式>");
-    node inversionNode("inversion");
     
     if (currentToken.type == "not")
     {
         debug("推导：<inversion>-> not <inversion>");
-        node notNode(currentToken.value);
+
+        node notNode("not");
         match("not");
         
-        node inversionChild = translateASTInversion();
-        
-        inversionNode.addChild(notNode);
-        inversionNode.addChild(inversionChild);
+        node c1 = translateASTInversion();
+        notNode.addChild(c1);
+
+        return notNode;
     }
     else
     {
         debug("推导：<inversion>-> <关系表达式>");
         node relationExpr = translateASTRelationExpression();
-        inversionNode.addChild(relationExpr);
+        return relationExpr;
     }
     
-    return inversionNode;
+    return node("");
 }
 
 node ASTSemanticAnalyzer::translateASTRelationExpression()
 {
     debug("推导：<关系表达式>-> <算术表达式> E");
-    node relationExprNode("关系表达式");
-    
-    node mathExpr = translateASTMathExpression();
-    node E = translateASTE(mathExpr);
-    
-    relationExprNode.addChild(mathExpr);
-    relationExprNode.addChild(E);
-    
-    return relationExprNode;
+    node c1 = translateASTMathExpression();
+    node c2 = translateASTE();
+
+    if(c2.root == "empty") return c1;
+    else{
+        c2.addNodeAsFirstChild(c1);
+        return c2;
+    }
 }
 
-node ASTSemanticAnalyzer::translateASTE(const node& E1)
+node ASTSemanticAnalyzer::translateASTE()
 {
     debug("选择产生式：E-> 关系 <算术表达式> E | ε ");
-    node ENode("E");
-    
+ 
     if (currentToken.type == "关系")
     {
         debug("推导：E-> 关系 <算术表达式> E");
-        node relNode(currentToken.value);
+        
+        std::string op = currentToken.value;
+        if(op == "<") { op = "lt"; }
+        else if(op == ">") { op = "gt"; }
+        else if(op == "<=") { op = "lte"; }
+        else if(op == ">=") { op = "gte"; }
+        else if(op == "==") { op = "eq"; }
+        else if(op == "<>") { op = "noteq"; }
         match("关系");
         
-        node mathExpr = translateASTMathExpression();
-        node EChild = translateASTE(mathExpr);
-        
-        ENode.addChild(relNode);
-        ENode.addChild(mathExpr);
-        ENode.addChild(EChild);
+        node c1 = translateASTExpression();
+        node c2 = translateASTE();
+
+        if(c2.root == "") return node("");
+
+        if(c2.root == "empty"){
+            node root = node(op);
+            root.addChild(c1);
+            return root;
+        }
+        else{
+                node newFirstChild = node(op);
+                newFirstChild.addChild(c1);
+
+                node insertPoint = node("");
+                bool result = c2.getFirstLeftNonLeafChild(insertPoint);
+                
+                if(!result){
+                    c2.addNodeAsFirstChild(newFirstChild);
+                }
+                else{
+                    insertPoint.addNodeAsFirstChild(newFirstChild);
+                }
+                return c2;
+        }
+      
     }
     else if (currentToken.type == "and" || currentToken.type == "or" ||
              currentToken.type == "分号" || currentToken.type == "#" || 
              currentToken.type == "end" || currentToken.type == "右括号")
     {
         debug("推导：E->ε");
-        ENode = node("ε");
+        return node("empty");
     }
     
-    return ENode;
+    return node("");
 }
 
 node ASTSemanticAnalyzer::translateASTMathExpression()
 {
     debug("推导：<算术表达式> -> <term> H ");
-    node mathExprNode("算术表达式");
-    
-    node term = translateASTTerm();
-    node H = translateASTH(term);
-    
-    mathExprNode.addChild(term);
-    mathExprNode.addChild(H);
-    
-    return mathExprNode;
+   
+    node c1 = translateASTTerm();
+    node c2 = translateASTH();
+
+    if(c2.root == "empty") return c1;
+    else{
+        c2.addNodeAsFirstChild(c1);
+        return c2;
+    }
 }
 
 node ASTSemanticAnalyzer::translateASTTerm()
@@ -419,7 +477,7 @@ node ASTSemanticAnalyzer::translateASTTerm()
     node termNode("term");
     
     node factor = translateASTFactor();
-    node I = translateASTI(factor);
+    node I = translateASTI();
     
     termNode.addChild(factor);
     termNode.addChild(I);
@@ -427,24 +485,42 @@ node ASTSemanticAnalyzer::translateASTTerm()
     return termNode;
 }
 
-node ASTSemanticAnalyzer::translateASTH(const node& E1)
+node ASTSemanticAnalyzer::translateASTH()
 {
     debug("选择产生式：H-> 加法 <term> H | ε ");
-    node HNode("H");
     
     if (currentToken.type == "加法" )
     {
-        debug("推导：H-> " + currentToken.type + " <term> H");
-        node opNode(currentToken.value);
-        std::string opType = currentToken.type;
-        match(opType);
+       std::string op = currentToken.value;
+       if(op == "+") { op = "add"; }
+       else if(op == "-") { op = "sub"; }
+       match("加法");
+
+       node c1 = translateASTTerm();
+       node c2 = translateASTH();
         
-        node term = translateASTTerm();
-        node HChild = translateASTH(term);
-        
-        HNode.addChild(opNode);
-        HNode.addChild(term);
-        HNode.addChild(HChild);
+       if(c2.root == "") return node("");
+
+        if(c2.root == "empty"){
+            node root = node(op);
+            root.addChild(c1);
+            return root;
+        }
+        else{
+                node newFirstChild = node(op);
+                newFirstChild.addChild(c1);
+
+                node insertPoint = node("");
+                bool result = c2.getFirstLeftNonLeafChild(insertPoint);
+                
+                if(!result){
+                    c2.addNodeAsFirstChild(newFirstChild );
+                }
+                else{
+                    insertPoint.addNodeAsFirstChild(newFirstChild );
+                }
+                return c2;
+            }
     }
     else if (currentToken.type == "关系" || currentToken.type == "and" || 
              currentToken.type == "or" || currentToken.type == "分号" ||
@@ -452,29 +528,53 @@ node ASTSemanticAnalyzer::translateASTH(const node& E1)
              currentToken.type == "右括号")
     {
         debug("推导：H->ε");
-        HNode = node("ε");
+        return node("empty");
     }
     
-    return HNode;
+    return node("");
 }
 
-node ASTSemanticAnalyzer::translateASTI(const node& E1)
+node ASTSemanticAnalyzer::translateASTI()
 {
     debug("选择产生式：I-> 乘法 <factor> I | ε ");
-    node INode("I");
+    
     
     if (currentToken.type == "乘法")
     {
         debug("推导：I-> 乘法 <factor> I");
-        node mulNode(currentToken.value);
+        std::string op = currentToken.value;
+        if (op == "*") { op = "mul"; }
+        else if(op == "/") { op = "div"; }
+        else if(op == "%") { op = "mod"; }
+    
         match("乘法");
         
-        node factor = translateASTFactor();
-        node IChild = translateASTI(factor);
+        node c1 = translateASTFactor();
+        node c2 = translateASTI();
         
-        INode.addChild(mulNode);
-        INode.addChild(factor);
-        INode.addChild(IChild);
+        if(c2.root == "") return node("");
+
+        if(c2.root == "empty"){
+            node root = node(op);
+            root.addChild(c1);
+            return root;
+        }
+        else{
+                node newFirstChild = node(op);
+                newFirstChild.addChild(c1);
+
+                node insertPoint = node("");
+                bool result = c2.getFirstLeftNonLeafChild(insertPoint);
+                
+                if(!result){
+                    c2.addNodeAsFirstChild(newFirstChild );
+                }
+                else{
+                    insertPoint.addNodeAsFirstChild(newFirstChild );
+                }
+                return c2;
+            }
+
     }
     else if (currentToken.type == "加法" ||
              currentToken.type == "关系" || currentToken.type == "and" || 
@@ -483,16 +583,15 @@ node ASTSemanticAnalyzer::translateASTI(const node& E1)
              currentToken.type == "右括号")
     {
         debug("推导：I->ε");
-        INode = node("ε");
+        return node("empty");
     }
     
-    return INode;
+    return node("");
 }
 
 node ASTSemanticAnalyzer::translateASTFactor()
 {
     debug("选择产生式：<factor>-> 标识符|true|false| 整数 | 字符串 |左括号 <表达式> 右括号 ");
-    node factorNode("factor");
     
     if (currentToken.type == "标识符")
     {
@@ -508,50 +607,47 @@ node ASTSemanticAnalyzer::translateASTFactor()
             throw std::runtime_error("Identifier not declared: " + name);
         }
         
-        factorNode.addChild(idNode);
+        return idNode;
     }
     else if (currentToken.type == "true" || currentToken.type == "false")
     {
         debug("推导：<factor>-> " + currentToken.type);
         node boolNode(currentToken.value);
         match(currentToken.type);
-        factorNode.addChild(boolNode);
+        return boolNode;
     }
     else if (currentToken.type == "整数")
     {
         debug("推导：<factor>-> 整数");
         node intNode(currentToken.value);
         match("整数");
-        factorNode.addChild(intNode);
+        return intNode;
     }
     else if (currentToken.type == "字符串")
     {
         debug("推导：<factor>-> 字符串");
         node stringNode(currentToken.value);
         match("字符串");
-        factorNode.addChild(stringNode);
+        return stringNode;
     }
     else if (currentToken.type == "左括号")
     {
         debug("推导：<factor>-> 左括号 <表达式> 右括号");
-        node leftParen("左括号");
+
         match("左括号");
         
         node expression = translateASTExpression();
-        
-        node rightParen("右括号");
+
         match("右括号");
         
-        factorNode.addChild(leftParen);
-        factorNode.addChild(expression);
-        factorNode.addChild(rightParen);
+        return expression;
     }
     else {
         debug("错误：无法识别的factor类型: " + currentToken.type);
         throw std::runtime_error("Unexpected token in factor: " + currentToken.type);
     }
     
-    return factorNode;
+    return node("");
 }
 
 #pragma endregion 表达式相关函数
@@ -610,7 +706,7 @@ node ASTSemanticAnalyzer::translateASTLoopStatement()
 node ASTSemanticAnalyzer::translateASTNestedStatement()
 {
     debug("选择产生式：<嵌套语句>-><语句> 分号 | <复合语句>");
-    node nestedStmtNode("嵌套语句");
+    node nestedStmtNode("nestedStatement");
     
     if (currentToken.type == "标识符" || currentToken.type == "if" || currentToken.type == "while")
     {
