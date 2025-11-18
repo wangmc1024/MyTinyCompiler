@@ -66,18 +66,18 @@
 
 ### 程序界面
 
-![image-20251118171913905](C:\Users\Sanziyue\AppData\Roaming\Typora\typora-user-images\image-20251118171913905.png)
+![image-20251118171913905](./image/homepage.png)
 
 ### 运行结果
 
-![image-20251118172200517](C:\Users\Sanziyue\AppData\Roaming\Typora\typora-user-images\image-20251118172200517.png)
+![image-20251118172200517](./image/result1.png)
 
-![image-20251118172222087](C:\Users\Sanziyue\AppData\Roaming\Typora\typora-user-images\image-20251118172222087.png)
+![image-20251118172222087](./image/result2.png)
 
-![image-20251118172238002](C:\Users\Sanziyue\AppData\Roaming\Typora\typora-user-images\image-20251118172238002.png)
+![image-20251118172238002](./image/result3.png)
 
-![image-20251118172254413](C:\Users\Sanziyue\AppData\Roaming\Typora\typora-user-images\image-20251118172254413.png)
+![image-20251118172254413](./image/result4.png)
 
 ### AST可视化
 
-![image-20251118172103917](C:\Users\Sanziyue\AppData\Roaming\Typora\typora-user-images\image-20251118172103917.png)
+![image-20251118172103917](./image/AST.png)
